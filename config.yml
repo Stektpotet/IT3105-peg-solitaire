@@ -1,0 +1,37 @@
+env:
+    type: triangle
+    size: 5
+
+agent:
+    action_axes: 2
+    greedy: False
+
+    acm:
+        actor:
+            dimensions:
+                - 24
+                - 48
+                - 1
+            learning_rate: 0.05
+            discount_rate: 0.99
+        critic_type: table
+        critic:
+            dimensions:
+                - 24
+                - 48
+                - 1
+            learning_rate: 0.05
+            discount_rate: 0.99
+
+visual:
+    resolution: 100
+    peg_scale: 0.5
+    board_scale: 1
+    outline_color:
+        - 255
+        - 255
+        - 255
+    fill_color:
+        - 127
+        - 0
+        - 0
