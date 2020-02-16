@@ -32,7 +32,7 @@ if __name__ == '__main__':
     env.setup(config)
 
     cfg_agent = config['agent']
-    # agent = Agent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+    # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.user_modify()
 

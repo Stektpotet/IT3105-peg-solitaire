@@ -28,6 +28,7 @@ class Actor(ANNModel, ABC):
 
     def __init__(self, state_shape, action_shape, dimensions, learning_rate, discount_rate):
         ANNModel.__init__(self, state_shape, action_shape, dimensions, learning_rate, discount_rate)
+        self.action_shape = action_shape
 
 
 class Critic(ABC):
