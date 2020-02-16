@@ -12,10 +12,23 @@ class Agent(ABC):
         self.actor = actor
         self.critic = critic
         self.env = env
+        self.epsilon_greed = 1
         pass
 
+
+
     # @abstractmethod
-    def select_actions(self, state): pass
+    def select_actions(self, state):
+        rand = np.random.rand()
+
+        if rand < self.epsilon_greed:
+            # Explore, i.e. do random action
+            pass
+        else:
+            # select best action
+            pass
+
+        pass
 
     def play(self, env):
 

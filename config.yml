@@ -1,6 +1,6 @@
 env:
-    type: triangle
-    size: 5
+    type: diamond
+    size: 4
 
 agent:
     action_axes: 2

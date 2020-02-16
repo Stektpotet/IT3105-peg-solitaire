@@ -23,6 +23,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-nd", "--no_draw", default=False)
+    parser.add_argument("-g", "--greedy", default=False)
     args = parser.parse_args()
 
     with open("config.yml", 'r') as cfg_file:
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.user_modify()
-
-    # TODO: Add oop for user to set up scenario...
-    # app.mainloop()
+    # WIP - this causes errors
+    # saps = env.generate_state_action_pairs()
+    # print(saps)
     plt.show()

@@ -53,13 +53,33 @@ class PegSolitaireEnvironment(Environment):
         pass
 
     def score_state(self):
+        return self._score_state()
+    @staticmethod
+    def _score_state(board: Board):
         """
         Naive scoring based on board fullness
         :return: a normalized score
         """
-        return self.board.peg_count / self.board.full_count
+        return board.peg_count / board.full_count
 
     def user_modify(self):
         self.render()
         # TODO input loop allowing user to modify board - needs to render for every event
         self.initial_board = deepcopy(self.board)  # Store aside the board in its starting config
+
+    def generate_state_action_pairs(self):
+        state_action_pairs = {}
+
+        def step(board):
+            for p in zip(*np.where(board.pegs == 0)):  # For each open position - TODO: verify that masked values are not used
+                p_flat = board.index_flat(p)
+                for move in board.valid_moves(p):
+                    print(move)
+                    if board.valid_action(p_flat, move):
+                        b = deepcopy(board)
+                        b.apply_action(p_flat, move)
+                        state_action_pairs[(p_flat, move)] = self._score_state(b)  # Add state_action_pair
+                        step(b)
+
+        step(deepcopy(self.initial_board))
+        return state_action_pairs
