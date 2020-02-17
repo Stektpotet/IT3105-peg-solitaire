@@ -2,9 +2,9 @@ from typing import Dict
 import argparse
 import yaml
 
-from actorcritic import TableCritic, ANNCritic, Actor, Critic
-from agent import Agent
-from app import App
+from actorcritic import TableCritic, ANNCritic, Actor, Critic, TableActor
+from agent import Agent, PegSolitaireAgent, RandomAgent
+from app_UNUSED import App
 from peg_solitaire.env import PegSolitaireEnvironment
 import matplotlib.pyplot as plt
 
@@ -12,10 +12,12 @@ import matplotlib.pyplot as plt
 def build_actor_critic(cfg: Dict, state_shape, action_shape):
     critic: Critic
     if cfg['critic_type'] == 'table':
-        critic = TableCritic(state_shape=state_shape, action_shape=action_shape)
+        expected = {key: cfg['critic'][key] for key in TableCritic.__init__.__code__.co_varnames[3:]}
+        critic = TableCritic(state_shape=state_shape, action_shape=action_shape, **expected)
     else:
         critic = ANNCritic(**cfg['critic'], state_shape=state_shape, action_shape=action_shape)
-    actor = Actor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
+    actor = TableActor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
+    # actor = Actor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
     return actor, critic
 
 
@@ -33,11 +35,15 @@ if __name__ == '__main__':
     env = PegSolitaireEnvironment()
     env.setup(config)
 
-    cfg_agent = config['agent']
-    # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
-
     env.user_modify(args.user_input)
 
-    saps = env.generate_state_action_pairs()
-    print(saps)
+    cfg_agent = config['agent']
+    rand_agent = RandomAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+    # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+
+    env.should_render = not args.no_draw
+    rand_agent.learn(env, cfg_agent['episodes'])
+
+    # saps = env.generate_state_action_pairs()
+    # print(saps)
     plt.show()

@@ -5,7 +5,6 @@ from math import cos, sin
 
 from env import Environment
 
-
 class App(tk.Frame):
     def __init__(self, env: Environment, name="Game", window_size=900):
         self._master = tk.Tk()

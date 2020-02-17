@@ -13,7 +13,7 @@ class Board(ABC):
     def shape(self): return self.pegs.shape
 
     @property
-    def peg_count(self): return np.sum(self.pegs)
+    def pegs_remaining(self): return np.sum(self.pegs)
 
     @property
     def full_count(self) -> int:
@@ -23,7 +23,15 @@ class Board(ABC):
     def _count_holes(self) -> int: pass
 
     @abstractmethod
-    def rotate_state_action(self, x, y, move) -> List: pass
+    def rotate_state_action(self, x, y, move) -> List:
+        """
+        Allow rotation of a state-action pair to increase the knowledge of the agent given a SAP
+        :param x:
+        :param y:
+        :param move:
+        :return:
+        """
+        pass
 
     # TODO: Look at what is most useful; flat indices or 2d indices - which is more used? Then unify...
 
@@ -76,29 +84,28 @@ class Board(ABC):
         """
         return int(i / self.shape[1]), i % self.shape[1]
 
-    def _peg_line(self, peg_flat_index: int, move_index: int):
-        peg_pos = self.index_2d(peg_flat_index)
-        peg_skip_pos = (peg_pos[0] + self.moves[move_index][0], peg_pos[1] + self.moves[move_index][1])
-        peg_jumper = (peg_pos[0] + self.moves[move_index][0] * 2, peg_pos[1] + self.moves[move_index][1] * 2)
-        return peg_pos, peg_skip_pos, peg_jumper
+    def _peg_line(self, peg: (int, int), move_index: int):
+        peg_skip_pos = (peg[0] + self.moves[move_index][0], peg[1] + self.moves[move_index][1])
+        peg_jumper = (peg[0] + self.moves[move_index][0] * 2, peg[1] + self.moves[move_index][1] * 2)
+        return peg_skip_pos, peg_jumper
 
-    def valid_action(self, peg_flat_index: int, move_index: int):
+    def valid_action(self, peg: (int, int), move_index: int):
         """
         Catch all cases of invalid actions before assuming it's a valid one
-        :param peg_flat_index: the index of the peg hole we want filled
+        :param peg: the index of the peg hole we want filled
         :param move_index: the index of which direction to source a peg from
         :return:
         """
 
-        if self.pegs.flat[peg_flat_index] != 0:
-            print(f"peg {peg_flat_index} at {self.index_2d(peg_flat_index)} is already filled (or it is masked)!")
+        if self.pegs[peg] != 0:
+            print(f"position {peg} is already filled (or it is masked)!")
             return False
 
         if move_index < 0 or move_index >= len(self.moves):
             print(f"Illegal move - not defined in 'board.moves'")
             return False
 
-        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
+        peg_skip_pos, peg_jumper = self._peg_line(peg, move_index)
 
         if self.pegs[peg_skip_pos] == 0:
             # print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
@@ -110,12 +117,10 @@ class Board(ABC):
 
         return True
 
-    def apply_action(self, peg_flat_index: int, move_index: int):
-        self.pegs.flat[peg_flat_index] = True  # Fill
+    def apply_action(self,  peg: (int, int), move_index: int):
+        peg_skip_pos, peg_jumper = self._peg_line(peg, move_index)
 
-        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
-
-        self.pegs[peg_pos] = True
+        self.pegs[peg] = True
         self.pegs[peg_skip_pos] = False
         self.pegs[peg_jumper] = False
 

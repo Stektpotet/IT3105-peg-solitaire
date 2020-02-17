@@ -12,6 +12,10 @@ from peg_solitaire.board_drawer import BoardDrawer
 
 class PegSolitaireEnvironment(Environment):
 
+    @property
+    def state_key(self):
+        return bytes(self.board.pegs)
+
     board_drawer: BoardDrawer
     board: Board
     initial_board: Board  # A copy of the board in its initial state (pre-training)
@@ -31,9 +35,18 @@ class PegSolitaireEnvironment(Environment):
 
     def step(self, action: (int, int)) -> (int, bool):
         flat_index, move = action
-        # TODO: apply the move to the board
-        # For decopled code, it might be worth just passing it on to the board :thinkin:
-        pass
+        self.board.apply_action(self.board.index_2d(flat_index), move)
+
+        if self.should_render:
+            self.render()
+
+        if len(self.actions()) > 0:
+            return 0, False
+
+        # We likely don't want to reward like this
+        reward = 1 - (self.board.pegs_remaining - 1) / (self.board.hole_count-1)
+
+        return self.board.pegs_remaining == 1, True
 
     # NOTE: we want to allow creation before setup, hence this is not in __init__
     # Though if need be we may put it there later... :thinking:
@@ -72,7 +85,7 @@ class PegSolitaireEnvironment(Environment):
         Naive scoring based on board fullness
         :return: a normalized score
         """
-        return (board.full_count - board.peg_count - 1) / board.full_count
+        return (board.full_count - board.pegs_remaining - 1) / board.full_count
 
     def user_modify(self, allow_input=True):
         self.render()
@@ -105,6 +118,21 @@ class PegSolitaireEnvironment(Environment):
 
         self.initial_board = deepcopy(self.board)  # Store aside the board in its starting config
 
+    def actions(self):
+        return self._actions(self.board)
+
+    @staticmethod
+    def _actions(board):
+        if board.pegs_remaining == 1:
+            return []
+        valid_actions = []
+        for p in zip(*np.where(board.pegs == 0)):  # For each open position
+            for move in (board.valid_moves(p)):
+                if board.valid_action(p, move):
+                    p_flat = board.index_flat(p)
+                    valid_actions.append((p_flat, move))
+        return valid_actions
+
     def generate_state_action_pairs(self):  # Oops is this full on dynamic programming bootstrapping...?
         state_action_pairs = {}
         state_values = {}
@@ -114,15 +142,18 @@ class PegSolitaireEnvironment(Environment):
         def step(board):
             state_values[bytes(board.pegs)] = self._score_state(board)
             for p in zip(*np.where(board.pegs == 0)):  # For each open position - TODO: verify that masked values are not used
-                p_flat = board.index_flat(p)
+
                 for move in (board.valid_moves(p)):
-                    if board.valid_action(p_flat, move):
+                    if board.valid_action(p, move):
                         b = deepcopy(board)     # Split computation
-                        b.apply_action(p_flat, move)
+                        b.apply_action(p, move)
+
+                        p_flat = board.index_flat(p)
+
                         # No need to generate this again!
                         if (bytes(board.pegs), (p_flat, move)) not in state_action_pairs:
                             state_action_pairs[(bytes(board.pegs), (p_flat, move))] = self._score_state(b)
-                            #
+
                             # for equiv in board.rotate_state_action(*p, move):
                             #     state_action_pairs[(bytes(equiv[0]), (equiv[1], equiv[2]))] = self._score_state(b)
 

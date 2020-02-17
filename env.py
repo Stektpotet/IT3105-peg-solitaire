@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, List
 
 
 class Environment(ABC):
@@ -25,5 +25,13 @@ class Environment(ABC):
     @abstractmethod
     def reset(self): pass
 
-    # @abstractmethod
-    # def set_render_target(self, tk.Canvas):
+    @property
+    @abstractmethod
+    def state_key(self): pass
+
+    @abstractmethod
+    def actions(self) -> List:
+        """
+        :return: A list of the feasible actions given the current state
+        """
+        pass

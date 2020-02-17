@@ -4,6 +4,7 @@ env:
 
 agent:
     action_axes: 2
+    episodes: 2
     greedy: False
 
     acm:
