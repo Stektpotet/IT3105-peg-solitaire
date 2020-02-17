@@ -22,8 +22,9 @@ def build_actor_critic(cfg: Dict, state_shape, action_shape):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-nd", "--no_draw", default=False)
-    parser.add_argument("-g", "--greedy", default=False)
+    parser.add_argument("-nd", "--no_draw", default=False, nargs='?', const=True)
+    parser.add_argument("-g", "--greedy", default=False, nargs='?', const=True)
+    parser.add_argument("-i", "--user_input", default=False, nargs='?', const=True)
     args = parser.parse_args()
 
     with open("config.yml", 'r') as cfg_file:
@@ -35,7 +36,8 @@ if __name__ == '__main__':
     cfg_agent = config['agent']
     # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
-    env.user_modify()
+    env.user_modify(args.user_input)
 
     saps = env.generate_state_action_pairs()
     print(saps)
+    plt.show()

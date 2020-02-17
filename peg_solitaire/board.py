@@ -26,11 +26,6 @@ class Board(ABC):
     def rotate_state_action(self, x, y, move) -> List: pass
 
     # TODO: Look at what is most useful; flat indices or 2d indices - which is more used? Then unify...
-    @abstractmethod
-    def valid_action(self, peg_flat_index: int, move_index: int): pass
-
-    @abstractmethod
-    def apply_action(self, peg_flat_index: int, move_index: int): pass
 
     def valid_moves(self, peg_index2d: (int, int)):
         move_indices = []
@@ -81,6 +76,48 @@ class Board(ABC):
         """
         return int(i / self.shape[1]), i % self.shape[1]
 
+    def _peg_line(self, peg_flat_index: int, move_index: int):
+        peg_pos = self.index_2d(peg_flat_index)
+        peg_skip_pos = (peg_pos[0] + self.moves[move_index][0], peg_pos[1] + self.moves[move_index][1])
+        peg_jumper = (peg_pos[0] + self.moves[move_index][0] * 2, peg_pos[1] + self.moves[move_index][1] * 2)
+        return peg_pos, peg_skip_pos, peg_jumper
+
+    def valid_action(self, peg_flat_index: int, move_index: int):
+        """
+        Catch all cases of invalid actions before assuming it's a valid one
+        :param peg_flat_index: the index of the peg hole we want filled
+        :param move_index: the index of which direction to source a peg from
+        :return:
+        """
+
+        if self.pegs.flat[peg_flat_index] != 0:
+            print(f"peg {peg_flat_index} at {self.index_2d(peg_flat_index)} is already filled (or it is masked)!")
+            return False
+
+        if move_index < 0 or move_index >= len(self.moves):
+            print(f"Illegal move - not defined in 'board.moves'")
+            return False
+
+        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
+
+        if self.pegs[peg_skip_pos] == 0:
+            # print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
+            return False
+
+        if self.pegs[peg_jumper] == 0:
+            # print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
+            return False
+
+        return True
+
+    def apply_action(self, peg_flat_index: int, move_index: int):
+        self.pegs.flat[peg_flat_index] = True  # Fill
+
+        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
+
+        self.pegs[peg_pos] = True
+        self.pegs[peg_skip_pos] = False
+        self.pegs[peg_jumper] = False
 
 class TriangleBoard(Board):
 
@@ -98,16 +135,6 @@ class TriangleBoard(Board):
         # TODO: Finish these equivalence generators
         return [(),
                 ()]
-        pass
-
-
-    def apply_action(self, peg_flat_index: int, move_index: int):
-        # TODO: Implement
-        pass
-
-    def valid_action(self, peg_flat_index: int, move_index: int):
-        # TODO: Implement
-        return False
         pass
 
     def _count_holes(self) -> int:
@@ -147,45 +174,5 @@ class DiamondBoard(Board):
         Board.__init__(self, size)
 
     # NOTE: The following may be generalizable enough to put it into the superclass
-    def _peg_line(self, peg_flat_index: int, move_index: int):
-        peg_pos = self.index_2d(peg_flat_index)
-        peg_skip_pos = (peg_pos[0] + self.moves[move_index][0], peg_pos[1] + self.moves[move_index][1])
-        peg_jumper = (peg_pos[0] + self.moves[move_index][0] * 2, peg_pos[1] + self.moves[move_index][1] * 2)
-        return peg_pos, peg_skip_pos, peg_jumper
 
-    def valid_action(self, peg_flat_index: int, move_index: int):
-        """
-        Catch all cases of invalid actions before assuming it's a valid one
-        :param peg_flat_index: the index of the peg hole we want filled
-        :param move_index: the index of which direction to source a peg from
-        :return:
-        """
-        if self.pegs.flat[peg_flat_index]:
-            print(f"peg {peg_flat_index} at {self.index_2d(peg_flat_index)} is already filled!")
-            return False
-
-        if move_index < 0 or move_index >= len(self.moves):
-            print(f"Illegal move - not defined in 'board.moves'")
-            return False
-
-        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
-
-        if not self.pegs[peg_skip_pos]:
-            # print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
-            return False
-
-        if not self.pegs[peg_jumper]:
-            # print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
-            return False
-
-        return True
-
-    def apply_action(self, peg_flat_index: int, move_index: int):
-        self.pegs.flat[peg_flat_index] = True  # Fill
-
-        peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
-
-        self.pegs[peg_pos] = True
-        self.pegs[peg_skip_pos] = False
-        self.pegs[peg_jumper] = False
 

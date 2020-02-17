@@ -40,4 +40,14 @@ if __name__ == '__main__':
         x[i] = np.roll(x[i],  -(len(x)-1 - i))
     pegs = ma.masked_array(x, mask=np.tri(size, dtype=bool, k=-1).T, hard_mask=True)
     print(pegs)
+
+    if pegs[1, 3]:
+        print("a")
+
+    if not pegs[1, 3]:
+        print("b")
+
+    if pegs[1, 3] == 0:
+        print("c")
+
     pass

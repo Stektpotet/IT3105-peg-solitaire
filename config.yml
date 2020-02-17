@@ -1,5 +1,5 @@
 env:
-    type: diamond
+    type: triangle
     size: 5
 
 agent:
@@ -13,7 +13,10 @@ agent:
                 - 48
                 - 1
             learning_rate: 0.05
-            discount_rate: 0.99
+            discount: 0.99
+            elig_decay_rate: 0.99
+            greed: 0
+            greed_decay: 0.99
         critic_type: table
         critic:
             dimensions:
@@ -21,7 +24,10 @@ agent:
                 - 48
                 - 1
             learning_rate: 0.05
-            discount_rate: 0.99
+            discount: 0.99
+            elig_decay_rate: 0.99
+            greed: 0
+            greed_decay: 0.99
 
 visual:
     resolution: 500

@@ -74,9 +74,9 @@ class PegSolitaireEnvironment(Environment):
         """
         return (board.full_count - board.peg_count - 1) / board.full_count
 
-    def user_modify(self):
+    def user_modify(self, allow_input=True):
         self.render()
-        wait_for_enter_key = False
+        wait_for_enter_key = allow_input
 
         def on_click(event):
             print(self.board_drawer.index_from_screen_space(self.board, event.x, event.y))
@@ -88,15 +88,17 @@ class PegSolitaireEnvironment(Environment):
 
         def on_key_press(event: KeyEvent):
             nonlocal wait_for_enter_key
-            print(event.key)
+            print(f'Key pressed: {event.key}')
+            # if event.key == "r":
+            #     np.random.shuffle(self.board._unmasked_pegs)
+            #     print(self.board)
+            #     self.render()
             if event.key == "enter":
                 wait_for_enter_key = False
         cid_keypress = self.fig.canvas.mpl_connect('key_press_event', on_key_press)
 
         while wait_for_enter_key:
             plt.waitforbuttonpress(timeout=100)
-            pass
-            # TODO input loop allowing user to modify board - needs to render for every event
 
         self.fig.canvas.mpl_disconnect(cid_mousepress)
         self.fig.canvas.mpl_disconnect(cid_keypress)
@@ -105,9 +107,12 @@ class PegSolitaireEnvironment(Environment):
 
     def generate_state_action_pairs(self):  # Oops is this full on dynamic programming bootstrapping...?
         state_action_pairs = {}
+        state_values = {}
         # TODO: we should identify rotated states
+        # Note: we can extract states for the critic
 
         def step(board):
+            state_values[bytes(board.pegs)] = self._score_state(board)
             for p in zip(*np.where(board.pegs == 0)):  # For each open position - TODO: verify that masked values are not used
                 p_flat = board.index_flat(p)
                 for move in (board.valid_moves(p)):
@@ -125,4 +130,4 @@ class PegSolitaireEnvironment(Environment):
                             step(b)
 
         step(deepcopy(self.initial_board))
-        return state_action_pairs
+        return state_action_pairs, state_values
