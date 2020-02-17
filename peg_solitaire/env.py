@@ -1,3 +1,4 @@
+
 from typing import Dict
 from copy import deepcopy
 
@@ -18,7 +19,7 @@ class PegSolitaireEnvironment(Environment):
 
     board_drawer: BoardDrawer
     board: Board
-    initial_board: Board  # A copy of the board in its initial state (pre-training)
+    _initial_board: Board  # A copy of the board in its initial state (pre-training)
 
     should_render: bool
 
@@ -40,13 +41,20 @@ class PegSolitaireEnvironment(Environment):
         if self.should_render:
             self.render()
 
-        if len(self.actions()) > 0:
-            return 0, False
+        # With sparse we'd want to avoid this...
+        # though for now, these are some candidate reward functions:
+        # x = remaining pegs
+        # https://www.desmos.com/calculator/opziinwhac
+        # IDEA: compute divergence from center of mass and use that as a factor of the reward,
+        #       ideally helping the agent keeping pegs close together :thinking:
 
-        # We likely don't want to reward like this
-        reward = 1 - (self.board.pegs_remaining - 1) / (self.board.hole_count-1)
+        x = self.board.pegs_remaining
+        n = self.board.hole_count
+        print(x, n, 1-(x-1)/(n-1))
+        # reward = ((x-(n-1)) ** 4) / ((n-2) ** 4)
+        reward = 1-(x-1)/(n-1)
 
-        return self.board.pegs_remaining == 1, True
+        return reward, len(self.actions()) > 0
 
     # NOTE: we want to allow creation before setup, hence this is not in __init__
     # Though if need be we may put it there later... :thinking:
@@ -61,8 +69,9 @@ class PegSolitaireEnvironment(Environment):
 
         self.board_drawer = BoardDrawer(**visual_config)
 
-        matplotlib.use(backend="TkAgg")
+        matplotlib.use(backend="TkAgg")  # TODO: move this somewhere better?
         self.fig, self.ax = plt.subplots()
+
         # More?
         pass
 
@@ -72,7 +81,7 @@ class PegSolitaireEnvironment(Environment):
         pass
 
     def reset(self):
-        self.board = deepcopy(self.initial_board)
+        self.board = deepcopy(self._initial_board)
         # More?
         pass
 
@@ -102,10 +111,10 @@ class PegSolitaireEnvironment(Environment):
         def on_key_press(event: KeyEvent):
             nonlocal wait_for_enter_key
             print(f'Key pressed: {event.key}')
-            # if event.key == "r":
-            #     np.random.shuffle(self.board._unmasked_pegs)
-            #     print(self.board)
-            #     self.render()
+            if event.key == "r":
+                np.random.shuffle(self.board._unmasked_pegs)
+                print(self.board)
+                self.render()
             if event.key == "enter":
                 wait_for_enter_key = False
         cid_keypress = self.fig.canvas.mpl_connect('key_press_event', on_key_press)
@@ -116,7 +125,7 @@ class PegSolitaireEnvironment(Environment):
         self.fig.canvas.mpl_disconnect(cid_mousepress)
         self.fig.canvas.mpl_disconnect(cid_keypress)
 
-        self.initial_board = deepcopy(self.board)  # Store aside the board in its starting config
+        self._initial_board = deepcopy(self.board)  # Store aside the board in its starting config
 
     def actions(self):
         return self._actions(self.board)
@@ -160,5 +169,5 @@ class PegSolitaireEnvironment(Environment):
                             self._render(b)
                             step(b)
 
-        step(deepcopy(self.initial_board))
+        step(deepcopy(self._initial_board))
         return state_action_pairs, state_values

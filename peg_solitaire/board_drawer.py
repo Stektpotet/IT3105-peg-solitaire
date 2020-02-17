@@ -130,6 +130,7 @@ class BoardDrawer:
                     [min(x + 1, board.size-1), y, 1]
                     ])  # down to the left
 
+
                 p_x = int(p[0])
                 p_y = int(p[1])
 

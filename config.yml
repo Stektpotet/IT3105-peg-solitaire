@@ -1,10 +1,10 @@
 env:
     type: triangle
-    size: 5
+    size: 6
 
 agent:
     action_axes: 2
-    episodes: 2
+    episodes: 50
     greedy: False
 
     acm:

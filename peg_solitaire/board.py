@@ -143,7 +143,7 @@ class TriangleBoard(Board):
         pass
 
     def _count_holes(self) -> int:
-        return len(self.indices[0])
+        return len(self.flat_indices)
 
     def __init__(self, size: int):
         self._unmasked_pegs = np.tri(size, dtype=int)

@@ -3,7 +3,7 @@ import argparse
 import yaml
 
 from actorcritic import TableCritic, ANNCritic, Actor, Critic, TableActor
-from agent import Agent, PegSolitaireAgent, RandomAgent
+from agent import Agent, RandomAgent
 from app_UNUSED import App
 from peg_solitaire.env import PegSolitaireEnvironment
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     env.user_modify(args.user_input)
 
     cfg_agent = config['agent']
-    rand_agent = RandomAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+    rand_agent = RandomAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
     # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.should_render = not args.no_draw
