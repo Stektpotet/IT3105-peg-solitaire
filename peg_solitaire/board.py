@@ -66,7 +66,7 @@ class Board(ABC):
         :param pos: x, y
         :return: flat index
         """
-        return pos[0] + pos[1] * self.shape[1]
+        return pos[1] + pos[0] * self.shape[1]
 
     def index_2d(self, i: int):
         """
@@ -145,10 +145,13 @@ class DiamondBoard(Board):
         if not self.pegs[peg_skip_pos]:
             print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
             return False
+        try:
+            if not self.pegs[peg_jumper]:
+                print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
+                return False
+        except IndexError:
+            print(f"WAT\t{peg_jumper} -> {peg_skip_pos} -> {peg_pos}")
 
-        if not self.pegs[peg_jumper]:
-            print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
-            return False
 
         return True
 

@@ -87,9 +87,22 @@ class BoardDrawer:
     def _draw_pegs(self, board: Board, view, transform):
         pass
 
+    def index_from_screen_space(self, board, x: int, y: int):
+        # TODO: implement properly
+        transform = self.board_type_transform(np.identity(3), board)
+
+        # Apply the appropriate transformation for the board
+        # transform = self.board_type_transform(board, transform)
+
+        view_transform = scale(np.identity(3),
+                               self.size / (board.size + 1),
+                               self.size / (board.size + 1))
+
+        o = np.array([x, y, 1], dtype=int)  # We need a 2D homogeneous vector (i.e. x,y,z) for matrix ops
+        p = o.dot(np.linalg.inv(view_transform.dot(transform)))
+        return p
+
     def draw(self, board: Board):
-
-
         # Center the board around the origin (0, 0)
         transform = self.board_type_transform(np.identity(3), board)
 

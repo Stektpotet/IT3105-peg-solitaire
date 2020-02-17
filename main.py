@@ -37,6 +37,5 @@ if __name__ == '__main__':
 
     env.user_modify()
     # WIP - this causes errors
-    # saps = env.generate_state_action_pairs()
-    # print(saps)
-    plt.show()
+    saps = env.generate_state_action_pairs()
+    print(saps)
