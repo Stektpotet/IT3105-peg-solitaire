@@ -1,5 +1,7 @@
 from typing import Dict
 from copy import deepcopy
+
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import KeyEvent
 
@@ -16,10 +18,13 @@ class PegSolitaireEnvironment(Environment):
 
     should_render: bool
 
+    def _render(self, board):
+        plt.clf()
+        plt.imshow(self.board_drawer.draw(board))
+        plt.pause(0.01)
+
     def render(self):
-        self.ax.cla()
-        self.ax.imshow(self.board_drawer.draw(self.board))
-        plt.pause(0.1)
+        self._render(self.board)
         # MORE?
         #  plt pause or something?
         pass
@@ -42,6 +47,8 @@ class PegSolitaireEnvironment(Environment):
             self.board = DiamondBoard(env_config['size'])
 
         self.board_drawer = BoardDrawer(**visual_config)
+
+        matplotlib.use(backend="TkAgg")
         self.fig, self.ax = plt.subplots()
         # More?
         pass
@@ -65,11 +72,11 @@ class PegSolitaireEnvironment(Environment):
         Naive scoring based on board fullness
         :return: a normalized score
         """
-        return board.peg_count / board.full_count
+        return (board.full_count - board.peg_count - 1) / board.full_count
 
     def user_modify(self):
         self.render()
-        wait_for_enter_key = True
+        wait_for_enter_key = False
 
         def on_click(event):
             print(self.board_drawer.index_from_screen_space(self.board, event.x, event.y))
@@ -96,22 +103,26 @@ class PegSolitaireEnvironment(Environment):
 
         self.initial_board = deepcopy(self.board)  # Store aside the board in its starting config
 
-    def generate_state_action_pairs(self):
+    def generate_state_action_pairs(self):  # Oops is this full on dynamic programming bootstrapping...?
         state_action_pairs = {}
+        # TODO: we should identify rotated states
 
-        def step(board, trace):
+        def step(board):
             for p in zip(*np.where(board.pegs == 0)):  # For each open position - TODO: verify that masked values are not used
                 p_flat = board.index_flat(p)
-                for move in board.valid_moves(p):
+                for move in (board.valid_moves(p)):
                     if board.valid_action(p_flat, move):
                         b = deepcopy(board)     # Split computation
                         b.apply_action(p_flat, move)
-                        if (board, (p_flat, move)) not in state_action_pairs:  # No need to generate this again!
-                            state_action_pairs[(board, (p_flat, move))] = self._score_state(b)  # Add state_action_pair
-                            trace = trace+f'-{move}'
-                            self.ax.set_title(trace)
-                            self.render()
-                            step(b, trace)
+                        # No need to generate this again!
+                        if (bytes(board.pegs), (p_flat, move)) not in state_action_pairs:
+                            state_action_pairs[(bytes(board.pegs), (p_flat, move))] = self._score_state(b)
+                            #
+                            # for equiv in board.rotate_state_action(*p, move):
+                            #     state_action_pairs[(bytes(equiv[0]), (equiv[1], equiv[2]))] = self._score_state(b)
 
-        step(deepcopy(self.initial_board), 'o')
+                            self._render(b)
+                            step(b)
+
+        step(deepcopy(self.initial_board))
         return state_action_pairs

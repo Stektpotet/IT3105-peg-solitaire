@@ -22,4 +22,22 @@ def index_2d(arr, i: int):
         return int(i / arr.shape[1]), i % arr.shape[1]
 
 if __name__ == '__main__':
+    size = 5
+
+    _unmasked_pegs = np.tri(size, dtype=int)
+    pegs = ma.masked_array(_unmasked_pegs, mask=np.tri(size, dtype=bool, k=-1).T, hard_mask=True)
+    indices = np.tril_indices_from(pegs)
+    indices = list(zip(*indices))
+
+    flat_indices = [index_flat(pegs, i) for i in indices]
+    pegs[0, 0] = 0
+    pegs[2, 1] = 0
+
+    print(pegs)
+    print(np.rot90(np.flipud(pegs)))
+    x = np.rot90(_unmasked_pegs)
+    for i in range(len(x)-1, -1, -1):
+        x[i] = np.roll(x[i],  -(len(x)-1 - i))
+    pegs = ma.masked_array(x, mask=np.tri(size, dtype=bool, k=-1).T, hard_mask=True)
+    print(pegs)
     pass

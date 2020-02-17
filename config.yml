@@ -1,6 +1,6 @@
 env:
     type: diamond
-    size: 4
+    size: 5
 
 agent:
     action_axes: 2
@@ -24,8 +24,8 @@ agent:
             discount_rate: 0.99
 
 visual:
-    resolution: 100
-    peg_scale: 0.5
+    resolution: 500
+    peg_scale: 0.25
     board_scale: 1
     outline_color:
         - 255

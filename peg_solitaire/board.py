@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from typing import List
+
 import numpy as np
 import numpy.ma as ma
 
@@ -19,6 +21,9 @@ class Board(ABC):
 
     @abstractmethod
     def _count_holes(self) -> int: pass
+
+    @abstractmethod
+    def rotate_state_action(self, x, y, move) -> List: pass
 
     # TODO: Look at what is most useful; flat indices or 2d indices - which is more used? Then unify...
     @abstractmethod
@@ -79,6 +84,23 @@ class Board(ABC):
 
 class TriangleBoard(Board):
 
+    def rotate_state_action(self, x, y, move) -> List:
+        x = np.rot90(self._unmasked_pegs)
+        for i in range(len(x) - 1, -1, -1):
+            x[i] = np.roll(x[i], -(len(x) - 1 - i))
+
+        s0 = ma.masked_array(x, mask=np.tri(self.size, dtype=bool, k=-1).T, hard_mask=True)
+        # p0 =
+
+        s1 = np.rot90(np.flipud(self.pegs))
+        p1 = (y, x)
+
+        # TODO: Finish these equivalence generators
+        return [(),
+                ()]
+        pass
+
+
     def apply_action(self, peg_flat_index: int, move_index: int):
         # TODO: Implement
         pass
@@ -106,6 +128,12 @@ class TriangleBoard(Board):
 
 
 class DiamondBoard(Board):
+
+    def rotate_state_action(self, x, y, move) -> List:
+        rotated_position = self.shape[1] - x - 1, self.shape[0] - y - 1
+        rotated_move = int(move + len(self.moves)/2) % len(self.moves)
+        return [(np.flip(self.pegs), self.index_flat(rotated_position), rotated_move)]
+        pass
 
     def _count_holes(self) -> int:
         """
@@ -143,15 +171,12 @@ class DiamondBoard(Board):
         peg_pos, peg_skip_pos, peg_jumper = self._peg_line(peg_flat_index, move_index)
 
         if not self.pegs[peg_skip_pos]:
-            print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
+            # print(f"Illegal move - cannot skip over {peg_skip_pos}, it's not filled!")
             return False
-        try:
-            if not self.pegs[peg_jumper]:
-                print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
-                return False
-        except IndexError:
-            print(f"WAT\t{peg_jumper} -> {peg_skip_pos} -> {peg_pos}")
 
+        if not self.pegs[peg_jumper]:
+            # print(f"Illegal move - cannot skip from {peg_jumper}, it's not filled!")
+            return False
 
         return True
 

@@ -36,6 +36,6 @@ if __name__ == '__main__':
     # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.user_modify()
-    # WIP - this causes errors
+
     saps = env.generate_state_action_pairs()
     print(saps)
