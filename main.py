@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 import argparse
 import yaml
@@ -27,24 +28,30 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-nd", "--no_draw", default=False, nargs='?', const=True)
     parser.add_argument("-g", "--greedy", default=False, nargs='?', const=True)
-    parser.add_argument("-i", "--user_input", default=False, nargs='?', const=True)
+    parser.add_argument("-i", "--interactive", default=False, nargs='?', const=True)
+    parser.add_argument("-cfg", "--config", type=str, default=["config.yml"], nargs=1)
     args = parser.parse_args()
 
-    with open("config.yml", 'r') as cfg_file:
+    if not os.path.isfile(args.config[0]):
+        print(f"unable to open config file: \"{args.config[0]}\"")
+        args.config[0] = "config.yml"
+    with open(args.config[0]) as cfg_file:
+        print("using config file: ", args.config[0])
         config = yaml.load(cfg_file, Loader=yaml.FullLoader)
 
     env = PegSolitaireEnvironment()
     env.setup(config)
 
-    if args.user_input:
+    if args.interactive:
         env.user_modify()
 
     cfg_agent = config['agent']
-    # rand_agent = RandomAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
     agent = PegSolitaireAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.should_render = not args.no_draw
     agent.learn(env, cfg_agent['episodes'])
+
+    agent.test(env,cfg_agent['tests'])
 
     # saps = env.generate_state_action_pairs()
     # print(saps)

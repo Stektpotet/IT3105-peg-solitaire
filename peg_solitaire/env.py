@@ -44,18 +44,8 @@ class PegSolitaireEnvironment(Environment):
         if self.should_render:
             self.render()
 
-        # With sparse we'd want to avoid this...
-        # though for now, these are some candidate reward functions:
-        # x = remaining pegs
-        # https://www.desmos.com/calculator/opziinwhac
-        # IDEA: compute divergence from center of mass and use that as a factor of the reward,
-        #       ideally helping the agent keeping pegs close together :thinking:
+        reward = self.score_state()
 
-        x = self.board.pegs_remaining
-        n = self.board.hole_count
-        # reward = ((x-(n-1)) ** 4) / ((n-2) ** 4)
-        reward = 1-(x-1)/(n-1)
-        # reward = ((x-(n-1)) ** 2) / ((n-2) ** 2)
         can_do_more = len(self.actions()) > 0
 
         return reward, not can_do_more
@@ -76,7 +66,7 @@ class PegSolitaireEnvironment(Environment):
         matplotlib.use(backend="TkAgg")  # TODO: move this somewhere better?
         self.fig, self.ax = plt.subplots()
 
-        self._initial_board = deepcopy(self.board)
+        self._initial_board = deepcopy(self.board)  # Store away the original configuration of the board
         # More?
         pass
 
@@ -91,7 +81,7 @@ class PegSolitaireEnvironment(Environment):
         pass
 
     def score_state(self):
-        return self._score_state()
+        return self._score_state(self.board)
 
     @staticmethod
     def _score_state(board: Board):
@@ -99,7 +89,24 @@ class PegSolitaireEnvironment(Environment):
         Naive scoring based on board fullness
         :return: a normalized score
         """
-        return (board.full_count - board.pegs_remaining - 1) / board.full_count
+
+        # With sparse we'd want to avoid this...
+        # though for now, these are some candidate reward functions:
+        # x = remaining pegs
+        # https://www.desmos.com/calculator/opziinwhac
+        # IDEA: compute divergence from center of mass and use that as a factor of the reward,
+        #       ideally helping the agent keeping pegs close together :thinking:
+
+        x = board.pegs_remaining
+        n = board.hole_count
+        # reward = ((x-(n-1)) ** 4) / ((n-2) ** 4)  # QUAD-SCALE REWARD [0, 1]
+        # reward = 1-(x-1)/(n-1)  # LINEAR REWARD [0, 1]
+
+        # p and curiosity are strongly linked
+        #p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
+        #reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
+        reward = (2 * (1 - x) / (n - 2)) + 1  # LINEAR REWARD [-1, 1]
+        return reward
 
     def user_modify(self):
         self.render()

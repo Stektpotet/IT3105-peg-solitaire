@@ -66,7 +66,6 @@ class Agent(ABC):
             state = state_prime
             action = action_prime
 
-
     def learn(self, env: Environment, n_episodes: int):
 
         wins = 0
@@ -85,17 +84,18 @@ class Agent(ABC):
 
         print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
 
-        wins = 0
-        self.actor.curiosity = 0
-        for i in range(100):
-            if self._episode_rollout(env, n_episodes+i) == 1:
-                wins += 1
-        print(f"Testing stopped... \n\twins: {wins}% success when greedy")
-
-        env.render()
         # TODO: Implement the agent actions
         # https://github.com/karl-hajjar/RL-solitaire/blob/8386fe857f902c83c21a9addc5d6e6336fc9c66a/agent.py#L113
         # for inspiration
+
+    def test(self, env: Environment, n_games):
+        wins = 0
+        self.actor.curiosity = 0
+        for i in range(n_games):
+            if self._episode_rollout(env, i) == 1:
+                wins += 1
+        env.render()
+        print(f"Testing stopped... \n\twins: {100*wins/n_games}% success when greedy")
 
     def train(self, env: Environment, n_games: int):
         # TODO: We can scale up the training to utilize multiple threads multiple environments at once
