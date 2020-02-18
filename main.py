@@ -5,7 +5,6 @@ import yaml
 
 from actorcritic import TableCritic, ANNCritic, Actor, Critic, TableActor
 from agent import Agent, RandomAgent
-from app_UNUSED import App
 from peg_solitaire.agent import PegSolitaireAgent
 from peg_solitaire.env import PegSolitaireEnvironment
 import matplotlib.pyplot as plt
