@@ -18,7 +18,7 @@ class PegSolitaireEnvironment(Environment):
 
     @property
     def state_key(self):
-        return bytes(self.board.pegs)
+        return self.board.to_bytes()
 
     board_drawer: BoardDrawer
     board: Board
@@ -103,8 +103,8 @@ class PegSolitaireEnvironment(Environment):
         # reward = 1-(x-1)/(n-1)  # LINEAR REWARD [0, 1]
 
         # p and curiosity are strongly linked
-        #p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
-        #reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
+        # p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
+        # reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
         reward = (2 * (1 - x) / (n - 2)) + 1  # LINEAR REWARD [-1, 1]
         return reward
 

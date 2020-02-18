@@ -56,10 +56,10 @@ class Agent(ABC):
             error = self.critic.error(state, state_prime, reward)
 
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
-            self.critic.eligibility_traces[state] = 1
+            # self.critic.eligibility_traces[state] = 1  # NOTE: THIS DIFFERS FOR TABLE AND ANN
 
             # 6
-            self.critic.update_all(error)
+            self.critic.update_all(error, state, state_prime, reward)
             self.actor.update_all(error)
 
             # 7

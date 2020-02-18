@@ -15,6 +15,7 @@ agent:
             dimensions:
                 - 24
                 - 48
+                - 1
             learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
@@ -23,13 +24,13 @@ agent:
         critic_type: ann
         critic:
             dimensions:
-                - 16
-                - 8
-            learning_rate: 0.005
+                - 24
+                - 48
+                - 1
+            learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
-
-            # TODO: Remove - requires changes in actorcritic.py
+            # TODO: Remove
             curiosity: 0.6
             curiosity_decay: 0.9999
 

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from typing import Dict
 
@@ -9,7 +8,6 @@ import tensorflow as tf
 from abc import abstractmethod, ABC
 
 class ActorCriticBase(ABC):
-    eligibility_traces: Dict
 
     # TODO: add default values?
     def __init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
@@ -20,11 +18,11 @@ class ActorCriticBase(ABC):
         self.curiosity_decay = curiosity_decay
         self.eligibility_traces = {}
 
-    def reset_eligibility_traces(self):
-        self.eligibility_traces.clear()
+    @abstractmethod
+    def reset_eligibility_traces(self): pass
 
     @abstractmethod
-    def update_all(self, error): pass
+    def update_all(self, error, *args): pass
 
     def __repr__(self):
         return f"<{type(self)}\n" \
@@ -37,11 +35,10 @@ class ANNModel(ActorCriticBase, ABC):
     @classmethod
     def _make_model(cls, in_shape: tuple, dimensions: tuple, out_shape: tuple):
         inputs = tf.keras.Input(shape=in_shape)
-        print(inputs)
         x = inputs
         for s in dimensions:
-            x = tf.keras.layers.Dense(s, activation='relu')(x)
-        output = tf.keras.layers.Dense(out_shape, activation="softmax")(x)
+            x = tf.keras.layers.Dense(s, activation='relu', kernel_initializer='glorot_uniform')(x)
+        output = tf.keras.layers.Dense(out_shape, activation="softmax", kernel_initializer='glorot_uniform')(x)
         return tf.keras.Model(inputs=inputs, outputs=output, name=cls.__name__)
 
     def __init__(self, state_shape, action_shape, dimensions,
@@ -86,7 +83,7 @@ class TableActor(Actor):
             self.policy[(state, action)] = 0  # TODO: initialize
         pass
 
-    def update_all(self, error):
+    def update_all(self, error, *args):
         for sap in self.eligibility_traces.keys():
             self.policy[sap] += self.learning_rate * error * self.eligibility_traces[sap]
             self.eligibility_traces[sap] *= self.discount * self.eligibility_decay_rate
@@ -119,6 +116,11 @@ class TableActor(Actor):
         self.curiosity *= self.curiosity_decay
         return selected_action
 
+    def reset_eligibility_traces(self):
+        self.eligibility_traces.clear()
+        pass
+
+
 class Critic(ActorCriticBase):
 
     def __init__(self, state_shape, action_shape,
@@ -137,6 +139,7 @@ class Critic(ActorCriticBase):
 
 
 class TableCritic(Critic):
+
     state_values: Dict
 
     def __init__(self, state_shape, action_shape,
@@ -163,7 +166,10 @@ class TableCritic(Critic):
 
         return reward + self.discount * self.state_values[state_prime] - self.state_values[state]
 
-    def update_all(self, error):
+    def reset_eligibility_traces(self):
+        self.eligibility_traces.clear()
+
+    def update_all(self, error, *args):
         for s in self.eligibility_traces.keys():
             self.state_values[s] += self.learning_rate * error * self.eligibility_decay_rate
             self.eligibility_traces[s] *= self.discount * self.eligibility_decay_rate
@@ -177,20 +183,43 @@ class ANNCritic(ANNModel, Critic):
         ANNModel.__init__(self, state_shape, 1, dimensions,
                           learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
-        self.model.compile(loss="mse", optimizer=tf.keras.optimizers.Adam(learning_rate))
+        self.model.compile(
+            loss=tf.keras.losses.MeanSquaredError(),
+            optimizer=tf.keras.optimizers.Adam(learning_rate, decay=1e-4)
+        )
+        self.eligibility_traces = np.zeros(len(self.model.trainable_variables))
+
+    def reset_eligibility_traces(self):
+        self.eligibility_traces = np.zeros_like(self.model.trainable_variables)
 
     def error(self, state, state_prime, reward):
-        if state not in self.eligibility_traces:  # NOTE: this can be set to 1 immediately according to the algorithm
-            self.eligibility_traces[state] = 0
-        if state_prime not in self.eligibility_traces:
-            self.eligibility_traces[state_prime] = 0
-
         s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
         s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
-
         return reward + self.discount * self.model(s_)[0, 0] - self.model(s)[0, 0]
 
-    def update_all(self, error):
-        for s in self.eligibility_traces.keys():
-            self.eligibility_traces[s] *= self.discount * self.eligibility_decay_rate
-        pass
+    def update_all(self, error, *args):
+        """
+        Trains the model
+        Updates trainable variables (weights and biases) + eligibility traces
+        :param error:
+        :return:
+        """
+
+        state, state_prime, reward = args
+
+        with tf.GradientTape() as tape:
+            s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
+            s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
+
+            target = reward + self.discount * self.model(s_)
+            prediction = self.model(s)
+            loss = self.model.loss(target, prediction)
+            gradients = tape.gradient(loss, self.model.trainable_variables)  # ∂V(s) / ∂w_i
+
+            for i, g in enumerate(gradients):
+                gradients[i] += self.eligibility_traces[i] * error
+                self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
+                self.eligibility_traces[i] += g
+
+        self.model.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+

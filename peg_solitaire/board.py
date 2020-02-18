@@ -23,6 +23,9 @@ class Board(ABC):
     def _count_holes(self) -> int: pass
 
     @abstractmethod
+    def to_bytes(self) -> bytes: pass
+
+    @abstractmethod
     def rotate_state_action(self, x, y, move) -> List:
         """
         Allow rotation of a state-action pair to increase the knowledge of the agent given a SAP
@@ -126,12 +129,15 @@ class Board(ABC):
 
 class TriangleBoard(Board):
 
+    def to_bytes(self) -> bytes:
+        return bytes([p for p in self.pegs.flat if not ma.is_masked(p)])
+
     def rotate_state_action(self, x, y, move) -> List:
         x = np.rot90(self._unmasked_pegs)
         for i in range(len(x) - 1, -1, -1):
             x[i] = np.roll(x[i], -(len(x) - 1 - i))
 
-        s0 = ma.masked_array(x, mask=np.tri(self.size, dtype=bool, k=-1).T, hard_mask=True)
+        s0 = ma.masked_array(x, mask=np.tri(self.size, dtype=np.uint8, k=-1).T, hard_mask=True)
         # p0 =
 
         s1 = np.rot90(np.flipud(self.pegs))
@@ -147,11 +153,13 @@ class TriangleBoard(Board):
 
     def __init__(self, size: int):
         self._unmasked_pegs = np.tri(size, dtype=np.uint8)
-        self.pegs = ma.masked_array(self._unmasked_pegs, mask=np.tri(size, dtype=bool, k=-1).T, hard_mask=True)
-        indices = np.tril_indices_from(self.pegs)
-        self.indices = list(zip(*indices))
+        self.pegs = ma.masked_array(self._unmasked_pegs, mask=np.tri(size, dtype=np.uint8, k=-1).T, hard_mask=True)
+        print(bytes(self.pegs))
+        self.indices = list(zip(*np.tril_indices_from(self.pegs)))
 
         self.flat_indices = [self.index_flat(i) for i in self.indices]
+        print(len(self.flat_indices))
+
         self.pegs[int(self.shape[0] / 2), int(self.shape[1] / 2) - int(self.shape[1] / 4)] = 0
         Board.__init__(self, size)
 
@@ -160,6 +168,9 @@ class TriangleBoard(Board):
 
 
 class DiamondBoard(Board):
+
+    def to_bytes(self) -> bytes:
+        return bytes(self.pegs)
 
     def rotate_state_action(self, x, y, move) -> List:
         rotated_position = self.shape[1] - x - 1, self.shape[0] - y - 1

@@ -19,7 +19,6 @@ def build_actor_critic(cfg: Dict, state_shape, action_shape):
         expected = {key: cfg['critic'][key] for key in ANNCritic.__init__.__code__.co_varnames[3:]}
         critic = ANNCritic(**expected, state_shape=state_shape, action_shape=action_shape)
     actor = TableActor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
-    # actor = Actor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
     return actor, critic
 
 
