@@ -146,7 +146,7 @@ class TriangleBoard(Board):
         return len(self.flat_indices)
 
     def __init__(self, size: int):
-        self._unmasked_pegs = np.tri(size, dtype=int)
+        self._unmasked_pegs = np.tri(size, dtype=np.uint8)
         self.pegs = ma.masked_array(self._unmasked_pegs, mask=np.tri(size, dtype=bool, k=-1).T, hard_mask=True)
         indices = np.tril_indices_from(self.pegs)
         self.indices = list(zip(*indices))
@@ -174,7 +174,7 @@ class DiamondBoard(Board):
         return self.shape[0] * self.shape[1]
 
     def __init__(self, size: int):
-        self.pegs = np.ones((size, size), dtype=int)
+        self.pegs = np.ones((size, size), dtype=np.uint8)
         self.pegs[int(self.shape[1] / 2), int(self.shape[0] / 2)] = 0
         Board.__init__(self, size)
 

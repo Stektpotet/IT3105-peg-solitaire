@@ -37,6 +37,7 @@ class ANNModel(ActorCriticBase, ABC):
     @classmethod
     def _make_model(cls, in_shape: tuple, dimensions: tuple, out_shape: tuple):
         inputs = tf.keras.Input(shape=in_shape)
+        print(inputs)
         x = inputs
         for s in dimensions:
             x = tf.keras.layers.Dense(s, activation='relu')(x)
@@ -184,10 +185,10 @@ class ANNCritic(ANNModel, Critic):
         if state_prime not in self.eligibility_traces:
             self.eligibility_traces[state_prime] = 0
 
-        print(self.model(tf.io.decode_raw(state_prime, out_type=uint8)))
+        s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
+        s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
 
-        return reward + self.discount * self.model(state_prime) - self.model(state_prime)
-
+        return reward + self.discount * self.model(s_)[0, 0] - self.model(s)[0, 0]
 
     def update_all(self, error):
         for s in self.eligibility_traces.keys():

@@ -1,3 +1,5 @@
+import struct
+
 import matplotlib.pyplot as plt
 import argparse as arg
 import numpy as np
@@ -31,14 +33,19 @@ if __name__ == '__main__':
                   [0, 0, 0, 0, 0, 0, 0],
                   [0, 0, 0, 0, 0, 0, 0],
                   [0, 0, 0, 0, 0, 0, 1]])
-    indices = np.array([*zip(*np.where(a))])
-    print(len(indices))
-    com = sum(indices)/len(indices)
-    print(indices)
-    print(com)
+    # indices = np.array([*zip(*np.where(a))])
+    # print(len(indices))
+    # com = sum(indices)/len(indices)
+    # print(indices)
+    # print(com)
+    #
+    # f = sum(indices[:]*1.1-com)
+    # l = f[0] ** 2 + f[1] ** 2
+    # print(l)
 
-    f = sum(indices[:]*1.1-com)
-    l = f[0] ** 2 + f[1] ** 2
-    print(l)
+    x = bytes(a)
+    print([i for i in x])
+    testResult = int.from_bytes(x, byteorder='big')
+    print(testResult)
 
     pass
