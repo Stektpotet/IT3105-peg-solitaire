@@ -22,8 +22,8 @@ class Agent(ABC):
         Select an action based on the actors policy
         :return:
         """
-        for action in env.actions():
-            self.actor.evaluate(env.state_key, action)
+        # TODO: Restructure this
+        return self.actor.select_action(env.state_key, env.actions())
         pass
 
     def _episode_rollout(self, env: Environment, episode: int):
@@ -31,21 +31,45 @@ class Agent(ABC):
         self.actor.reset_eligibility_traces()
         self.critic.reset_eligibility_traces()
 
+        state = env.state_key
+        action = self.select_actions(env)
         while True:
-            action = self.select_actions(env)
+            # 1 DO ACTION a FROM STATE s, MOVING THE SYSTEM TO STATE s’ AND RECEIVING REINFORCEMENT
             reward, done = env.step(action)
 
             if done:
                 print(f"Reached end-state: {reward}")
-                if reward == 1:
-                    print("VICTORY!")
+                # if reward == 1:
+                    # env.render()
                 # TODO: check victory
                 return reward
 
+            # 2. ACTOR: a’ ← Π(s’) THE ACTION DICTATED BY THE CURRENT POLICY FOR STATE s’.
+            state_prime = env.state_key
+            action_prime = self.select_actions(env)
+
+            # 3. ACTOR: e(s,a) ← 1 (the actor keeps SAP-based eligibilities)
+            self.actor.eligibility_traces[(state, action)] = 1
+
+            # Step 4 through 6 can be moved into one call on critic :tinking:
+            # 4. CRITIC: δ ← r +γV(s')−V(s)
+            error = self.critic.error(state, state_prime, reward)
+
+            # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
+            self.critic.eligibility_traces[state] = 1
+
+            # 6
+            self.critic.update_all(error)
+            self.actor.update_all(error)
+
+            # 7
+            state = state_prime
+            action = action_prime
+
+
     def learn(self, env: Environment, n_episodes: int):
 
-        episode_score = 0.0
-        end = False
+        wins = 0
 
         # START OF ACTOR-CRITIC ALGORITHM #
 
@@ -53,10 +77,22 @@ class Agent(ABC):
         self.actor.initialize(env.state_key, env.actions())
 
         for i in range(n_episodes):
-            self._episode_rollout(env, i)
+            if self._episode_rollout(env, i) == 1:
+                wins += 1
+            env.plot(i)
+            print(self.actor.curiosity)
+            # print(self.critic)
 
-        print(f"Learning stopped! {n_episodes} episodes completed")
+        print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
 
+        wins = 0
+        self.actor.curiosity = 0
+        for i in range(100):
+            if self._episode_rollout(env, n_episodes+i) == 1:
+                wins += 1
+        print(f"Testing stopped... \n\twins: {wins}% success when greedy")
+
+        env.render()
         # TODO: Implement the agent actions
         # https://github.com/karl-hajjar/RL-solitaire/blob/8386fe857f902c83c21a9addc5d6e6336fc9c66a/agent.py#L113
         # for inspiration

@@ -1,10 +1,10 @@
 env:
-    type: triangle
-    size: 6
+    type: diamond
+    size: 4
 
 agent:
     action_axes: 2
-    episodes: 50
+    episodes: 1000
     greedy: False
 
     acm:
@@ -16,8 +16,8 @@ agent:
             learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
-            greed: 0
-            greed_decay: 0.99
+            curiosity: 0.6
+            curiosity_decay: 0.9995
         critic_type: table
         critic:
             dimensions:
@@ -27,12 +27,12 @@ agent:
             learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
-            greed: 0
-            greed_decay: 0.99
+            curiosity: 1
+            curiosity_decay: 0.9999
 
 visual:
-    resolution: 500
-    peg_scale: 0.25
+    resolution: 72
+    peg_scale: 0.5
     board_scale: 1
     outline_color:
         - 255

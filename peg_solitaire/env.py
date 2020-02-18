@@ -13,6 +13,9 @@ from peg_solitaire.board_drawer import BoardDrawer
 
 class PegSolitaireEnvironment(Environment):
 
+    def plot(self, episode):
+        pass
+
     @property
     def state_key(self):
         return bytes(self.board.pegs)
@@ -50,11 +53,12 @@ class PegSolitaireEnvironment(Environment):
 
         x = self.board.pegs_remaining
         n = self.board.hole_count
-        print(x, n, 1-(x-1)/(n-1))
         # reward = ((x-(n-1)) ** 4) / ((n-2) ** 4)
         reward = 1-(x-1)/(n-1)
+        # reward = ((x-(n-1)) ** 2) / ((n-2) ** 2)
+        can_do_more = len(self.actions()) > 0
 
-        return reward, len(self.actions()) > 0
+        return reward, not can_do_more
 
     # NOTE: we want to allow creation before setup, hence this is not in __init__
     # Though if need be we may put it there later... :thinking:
@@ -72,6 +76,7 @@ class PegSolitaireEnvironment(Environment):
         matplotlib.use(backend="TkAgg")  # TODO: move this somewhere better?
         self.fig, self.ax = plt.subplots()
 
+        self._initial_board = deepcopy(self.board)
         # More?
         pass
 
@@ -96,9 +101,9 @@ class PegSolitaireEnvironment(Environment):
         """
         return (board.full_count - board.pegs_remaining - 1) / board.full_count
 
-    def user_modify(self, allow_input=True):
+    def user_modify(self):
         self.render()
-        wait_for_enter_key = allow_input
+        wait_for_enter_key = True
 
         def on_click(event):
             print(self.board_drawer.index_from_screen_space(self.board, event.x, event.y))

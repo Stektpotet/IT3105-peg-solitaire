@@ -20,6 +20,9 @@ class Environment(ABC):
     def render(self): pass
 
     @abstractmethod
+    def plot(self, episode): pass
+
+    @abstractmethod
     def set_state(self, state): pass
 
     @abstractmethod

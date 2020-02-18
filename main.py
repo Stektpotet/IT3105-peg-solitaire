@@ -5,6 +5,7 @@ import yaml
 from actorcritic import TableCritic, ANNCritic, Actor, Critic, TableActor
 from agent import Agent, RandomAgent
 from app_UNUSED import App
+from peg_solitaire.agent import PegSolitaireAgent
 from peg_solitaire.env import PegSolitaireEnvironment
 import matplotlib.pyplot as plt
 
@@ -35,14 +36,15 @@ if __name__ == '__main__':
     env = PegSolitaireEnvironment()
     env.setup(config)
 
-    env.user_modify(args.user_input)
+    if args.user_input:
+        env.user_modify()
 
     cfg_agent = config['agent']
-    rand_agent = RandomAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
-    # agent = PegSolitaireAgent(env, *build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+    # rand_agent = RandomAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
+    agent = PegSolitaireAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
     env.should_render = not args.no_draw
-    rand_agent.learn(env, cfg_agent['episodes'])
+    agent.learn(env, cfg_agent['episodes'])
 
     # saps = env.generate_state_action_pairs()
     # print(saps)

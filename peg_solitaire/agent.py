@@ -13,14 +13,3 @@ class PegSolitaireAgent(Agent):
         Agent.__init__(self, actor, critic)
 
         pass
-
-    def select_action(self, env: Environment):
-        possible_actions = self.env.actions()
-
-        pass
-
-    def learn(self, env: Environment, n_episodes: int):
-        score = 0.0
-        discount = 1.0
-        end = False
-

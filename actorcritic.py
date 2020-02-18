@@ -11,16 +11,25 @@ class ActorCriticBase(ABC):
     eligibility_traces: Dict
 
     # TODO: add default values?
-    def __init__(self, learning_rate, discount, elig_decay_rate, greed, greed_decay):
+    def __init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         self.learning_rate = learning_rate
-        self.discount_rate = discount
+        self.discount = discount
         self.eligibility_decay_rate = elig_decay_rate
-        self.greed = greed
-        self.greed_decay = greed_decay
+        self.curiosity = curiosity
+        self.curiosity_decay = curiosity_decay
         self.eligibility_traces = {}
 
     def reset_eligibility_traces(self):
         self.eligibility_traces.clear()
+
+    @abstractmethod
+    def update_all(self, error): pass
+
+    def __repr__(self):
+        return f"<{type(self)}\n" \
+               f"lr: {self.learning_rate}\n" \
+               f"gamma: {self.discount}\n" \
+               f"epsilon: {self.curiosity}>"
 
 class ANNModel(ActorCriticBase, ABC):
 
@@ -34,8 +43,8 @@ class ANNModel(ActorCriticBase, ABC):
         return tf.keras.Model(inputs=inputs, outputs=output, name=cls.__name__)
 
     def __init__(self, state_shape, action_shape, dimensions,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
-        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
+        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
         self.model = self._make_model(state_shape, dimensions, action_shape)
         self.model.summary()
@@ -46,8 +55,8 @@ class ANNModel(ActorCriticBase, ABC):
 class Actor(ActorCriticBase):
 
     def __init__(self, state_shape, action_shape, dimensions,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
-        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
+        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
         self.action_shape = action_shape
 
@@ -56,42 +65,63 @@ class Actor(ActorCriticBase):
         pass
 
     @abstractmethod
-    def evaluate(self, state, action): pass
+    def select_action(self, state, actions): pass
 
 
 class TableActor(Actor):
-    state_action_pairs: Dict
     policy: Dict
 
     def __init__(self, state_shape, action_shape, dimensions,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         Actor.__init__(self, state_shape, action_shape, dimensions,
-                       learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                       learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
-        self.state_action_pairs = {}
         self.policy = {}
 
     def initialize(self, state, actions):
         Actor.initialize(self, state, actions)
         for action in actions:
-            self.state_action_pairs[(state, action)] = 0  # TODO: initialize
+            self.policy[(state, action)] = 0  # TODO: initialize
         pass
 
-    def evaluate(self, state, action):
-        if (state, action) not in self.policy:
-            self.policy[(state, action)] = 0
-            state_action_pairs = 0
+    def update_all(self, error):
+        for sap in self.eligibility_traces.keys():
+            self.policy[sap] += self.learning_rate * error * self.eligibility_traces[sap]
+            self.eligibility_traces[sap] *= self.discount * self.eligibility_decay_rate
 
-        if (state, action) in self.state_action_pairs:
-            pass
-        pass
+    def select_action(self, state, actions):
+        local_policy_mapping = {}
 
+        for action in actions:
+            sap = (state, action)
+
+            if sap not in self.policy:
+                self.policy[sap] = 0
+            local_policy_mapping[sap] = self.policy[sap]
+            if sap not in self.eligibility_traces:
+                self.eligibility_traces[sap] = 0
+
+        # An ε-greedy strategy makes a random choice of actions with probability ε,
+        # and the greedy choice with probability 1−ε.
+
+        # Normalize for some reason
+        # local_policy_mapping = {
+        #     key: value / sum(local_policy_mapping.values()) for key, value in local_policy_mapping.items()
+        # }
+
+        # If more curious than greedy; explore!
+        if random.uniform(0, 1) > self.curiosity:
+            selected_action = max(local_policy_mapping, key=local_policy_mapping.get)[1]
+        else:
+            selected_action = random.choice(actions)
+        self.curiosity *= self.curiosity_decay
+        return selected_action
 
 class Critic(ActorCriticBase):
 
     def __init__(self, state_shape, action_shape,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
-        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
+        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
         self.action_shape = action_shape
         self.state_shape = state_shape
@@ -101,17 +131,16 @@ class Critic(ActorCriticBase):
         pass
 
     @abstractmethod
-    def evaluate(self, state): pass
+    def error(self, state, state_prime, reward): pass
 
 
 class TableCritic(Critic):
-
     state_values: Dict
 
     def __init__(self, state_shape, action_shape,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         Critic.__init__(self, state_shape, action_shape,
-                        learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                        learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
         self.state_values = {}
 
@@ -119,16 +148,34 @@ class TableCritic(Critic):
         Critic.initialize(self, state)
         self.state_values[state] = random.uniform(0, 0.1)
 
-    def evaluate(self, state):
-        pass
+    def error(self, state, state_prime, reward):
+        if state not in self.state_values:  # Note: initial values may play a big part :thinking:
+            self.state_values[state] = random.uniform(0.49, 0.5)  # This random distribution seems to work well
+        if state_prime not in self.state_values:
+            self.state_values[state_prime] = random.uniform(0.49, 0.)
+
+        if state not in self.eligibility_traces:  # NOTE: this can be set to 1 immediately according to the algorithm
+            self.eligibility_traces[state] = 0
+        if state_prime not in self.eligibility_traces:
+            self.eligibility_traces[state_prime] = 0
+
+        return reward + self.discount * self.state_values[state_prime] - self.state_values[state]
+
+    def update_all(self, error):
+        for s in self.eligibility_traces.keys():
+            self.state_values[s] += self.learning_rate * error * self.eligibility_decay_rate
+            self.eligibility_traces[s] *= self.discount * self.eligibility_decay_rate
 
 
 class ANNCritic(ANNModel, Critic):
     def __init__(self, state_shape, action_shape, dimensions,
-                 learning_rate, discount, elig_decay_rate, greed, greed_decay):
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         Critic.__init__(self, state_shape, action_shape)
         ANNModel.__init__(self, state_shape, action_shape, dimensions,
-                          learning_rate, discount, elig_decay_rate, greed, greed_decay)
+                          learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
-    def evaluate(self, state):
+    def error(self, state, state_prime, reward):
+        pass
+
+    def update_all(self, error):
         pass
