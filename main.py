@@ -16,7 +16,8 @@ def build_actor_critic(cfg: Dict, state_shape, action_shape):
         expected = {key: cfg['critic'][key] for key in TableCritic.__init__.__code__.co_varnames[3:]}
         critic = TableCritic(state_shape=state_shape, action_shape=action_shape, **expected)
     else:
-        critic = ANNCritic(**cfg['critic'], state_shape=state_shape, action_shape=action_shape)
+        expected = {key: cfg['critic'][key] for key in ANNCritic.__init__.__code__.co_varnames[3:]}
+        critic = ANNCritic(**expected, state_shape=state_shape, action_shape=action_shape)
     actor = TableActor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
     # actor = Actor(**cfg['actor'], state_shape=state_shape, action_shape=action_shape)
     return actor, critic
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     env.should_render = not args.no_draw
     agent.learn(env, cfg_agent['episodes'])
 
-    agent.test(env,cfg_agent['tests'])
+    agent.test(env, cfg_agent['tests'])
 
     # saps = env.generate_state_action_pairs()
     # print(saps)

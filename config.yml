@@ -1,12 +1,14 @@
 env:
     type: diamond
     size: 4
+    # #NOTE: it would be nice to control this through the config too, but likely it's not feasible
+    # reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
 
 agent:
     action_axes: 2
-    episodes: 1200
-    tests: 50
+    episodes: 1000
     greedy: False
+    tests: 50
 
     acm:
         actor:
@@ -19,15 +21,16 @@ agent:
             elig_decay_rate: 0.99
             curiosity: 0.49
             curiosity_decay: 0.99975
-        critic_type: table
+        critic_type: ann
         critic:
             dimensions:
                 - 24
                 - 48
                 - 1
-            learning_rate: 0.0375
+            learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
+            # TODO: Remove
             curiosity: 0.6
             curiosity_decay: 0.9999
 

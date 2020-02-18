@@ -2,8 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from typing import Dict
 
+import numpy as np
 import random
-from tensorflow import keras
+from tensorflow import keras, uint8
 import tensorflow as tf
 from abc import abstractmethod, ABC
 
@@ -170,12 +171,25 @@ class TableCritic(Critic):
 class ANNCritic(ANNModel, Critic):
     def __init__(self, state_shape, action_shape, dimensions,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
-        Critic.__init__(self, state_shape, action_shape)
-        ANNModel.__init__(self, state_shape, action_shape, dimensions,
+        Critic.__init__(self, state_shape, action_shape,
+                        learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
+        ANNModel.__init__(self, state_shape, 1, dimensions,
                           learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
+        self.model.compile(loss="mse", optimizer=tf.keras.optimizers.Adam(learning_rate))
+
     def error(self, state, state_prime, reward):
-        pass
+        if state not in self.eligibility_traces:  # NOTE: this can be set to 1 immediately according to the algorithm
+            self.eligibility_traces[state] = 0
+        if state_prime not in self.eligibility_traces:
+            self.eligibility_traces[state_prime] = 0
+
+        print(self.model(tf.io.decode_raw(state_prime, out_type=uint8)))
+
+        return reward + self.discount * self.model(state_prime) - self.model(state_prime)
+
 
     def update_all(self, error):
+        for s in self.eligibility_traces.keys():
+            self.eligibility_traces[s] *= self.discount * self.eligibility_decay_rate
         pass
