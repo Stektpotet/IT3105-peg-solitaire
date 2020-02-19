@@ -25,8 +25,7 @@ def build_actor_critic(cfg: Dict, state_shape, action_shape):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-nd", "--no_draw", default=False, nargs='?', const=True)
-    parser.add_argument("-g", "--greedy", default=False, nargs='?', const=True)
+    parser.add_argument("-g", "--graphics", default=False, nargs='?', const=True)
     parser.add_argument("-i", "--interactive", default=False, nargs='?', const=True)
     parser.add_argument("-cfg", "--config", type=str, default=["config.yml"], nargs=1)
     args = parser.parse_args()
@@ -47,7 +46,7 @@ if __name__ == '__main__':
     cfg_agent = config['agent']
     agent = PegSolitaireAgent(*build_actor_critic(cfg_agent['acm'], (env.board.hole_count,), (cfg_agent['action_axes']),))
 
-    env.should_render = not args.no_draw
+    env.should_render = args.graphics
     agent.learn(env, cfg_agent['episodes'])
 
     agent.test(env, cfg_agent['tests'])

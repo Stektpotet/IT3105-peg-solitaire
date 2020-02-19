@@ -3,7 +3,7 @@ from typing import Dict
 
 import numpy as np
 import random
-from tensorflow import keras, uint8
+from tensorflow import uint8
 import tensorflow as tf
 from abc import abstractmethod, ABC
 
@@ -16,7 +16,6 @@ class ActorCriticBase(ABC):
         self.eligibility_decay_rate = elig_decay_rate
         self.curiosity = curiosity
         self.curiosity_decay = curiosity_decay
-        self.eligibility_traces = {}
 
     @abstractmethod
     def reset_eligibility_traces(self): pass
@@ -37,8 +36,8 @@ class ANNModel(ActorCriticBase, ABC):
         inputs = tf.keras.Input(shape=in_shape)
         x = inputs
         for s in dimensions:
-            x = tf.keras.layers.Dense(s, activation='relu', kernel_initializer='glorot_uniform')(x)
-        output = tf.keras.layers.Dense(out_shape, activation="softmax", kernel_initializer='glorot_uniform')(x)
+            x = tf.keras.layers.Dense(s, activation='sigmoid')(x)
+        output = tf.keras.layers.Dense(out_shape, activation="linear")(x)
         return tf.keras.Model(inputs=inputs, outputs=output, name=cls.__name__)
 
     def __init__(self, state_shape, action_shape, dimensions,
@@ -57,6 +56,7 @@ class Actor(ActorCriticBase):
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
+        self.eligibility_traces = {}
         self.action_shape = action_shape
 
     def initialize(self, state, actions):
@@ -213,13 +213,26 @@ class ANNCritic(ANNModel, Critic):
 
             target = reward + self.discount * self.model(s_)
             prediction = self.model(s)
+            #print(f" predict: {prediction}")
+            #print(f"target: {target}")
             loss = self.model.loss(target, prediction)
-            gradients = tape.gradient(loss, self.model.trainable_variables)  # ∂V(s) / ∂w_i
+
+            gradients = tape.gradient(loss, self.model.trainable_variables) # ∂V(s) / ∂w_i
+            #print(f"trainable_variables {self.model.trainable_variables}")
 
             for i, g in enumerate(gradients):
-                gradients[i] += self.eligibility_traces[i] * error
+                #print(f" elg_trace: {self.eligibility_traces[i]}")
+                #print(f" discount: {self.discount}")
+                #print(f" elg_decay: {self.eligibility_decay_rate}")
+                #print(f"g is : {g}")
                 self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
                 self.eligibility_traces[i] += g
+                gradients[i] += self.eligibility_traces[i] * error
+                #print(gradients[i])
+
+        #print(self.model.trainable_variables)
 
         self.model.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+        #print(self.model.optimizer.get_gradients(loss, self.model.trainable_variables))
+
 
