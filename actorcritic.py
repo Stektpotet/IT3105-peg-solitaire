@@ -36,7 +36,7 @@ class ANNModel(ActorCriticBase, ABC):
         inputs = tf.keras.Input(shape=in_shape)
         x = inputs
         for s in dimensions:
-            x = tf.keras.layers.Dense(s, activation='sigmoid')(x)
+            x = tf.keras.layers.Dense(s, activation="sigmoid")(x)
         output = tf.keras.layers.Dense(out_shape, activation="linear")(x)
         return tf.keras.Model(inputs=inputs, outputs=output, name=cls.__name__)
 
@@ -55,8 +55,8 @@ class Actor(ActorCriticBase):
     def __init__(self, state_shape, action_shape, dimensions,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
-
         self.eligibility_traces = {}
+
         self.action_shape = action_shape
 
     def initialize(self, state, actions):
@@ -126,7 +126,6 @@ class Critic(ActorCriticBase):
     def __init__(self, state_shape, action_shape,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
-
         self.action_shape = action_shape
         self.state_shape = state_shape
 
@@ -146,7 +145,7 @@ class TableCritic(Critic):
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         Critic.__init__(self, state_shape, action_shape,
                         learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
-
+        self.eligibility_traces = {}
         self.state_values = {}
 
     def initialize(self, state):
@@ -185,7 +184,7 @@ class ANNCritic(ANNModel, Critic):
 
         self.model.compile(
             loss=tf.keras.losses.MeanSquaredError(),
-            optimizer=tf.keras.optimizers.Adam(learning_rate, decay=1e-4)
+            optimizer=tf.keras.optimizers.Adagrad(learning_rate)
         )
         self.eligibility_traces = np.zeros(len(self.model.trainable_variables))
 
@@ -195,7 +194,7 @@ class ANNCritic(ANNModel, Critic):
     def error(self, state, state_prime, reward):
         s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
         s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
-        return reward + self.discount * self.model(s_)[0, 0] - self.model(s)[0, 0]
+        return reward + self.discount * self.model.predict(s_)[0, 0] - self.model.predict(s)[0, 0]
 
     def update_all(self, error, *args):
         """
@@ -232,7 +231,9 @@ class ANNCritic(ANNModel, Critic):
 
         #print(self.model.trainable_variables)
 
+        for i, g in enumerate(gradients):
+            self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
+            self.eligibility_traces[i] += g
+            gradients[i] += self.eligibility_traces[i] * error
         self.model.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         #print(self.model.optimizer.get_gradients(loss, self.model.trainable_variables))
-
-

@@ -5,7 +5,7 @@ from tensorflow import keras
 import tensorflow as tf
 from abc import ABC, abstractmethod
 
-from actorcritic import Actor, Critic
+from actorcritic import Actor, Critic, TableCritic
 from env import Environment
 
 
@@ -56,7 +56,9 @@ class Agent(ABC):
             error = self.critic.error(state, state_prime, reward)
 
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
-            # self.critic.eligibility_traces[state] = 1  # NOTE: THIS DIFFERS FOR TABLE AND ANN
+            #TODO: make this nicer:
+            if issubclass(type(self.critic), TableCritic):
+                self.critic.eligibility_traces[state] = 1  # NOTE: THIS DIFFERS FOR TABLE AND ANN
 
             # 6
             self.critic.update_all(error, state, state_prime, reward)

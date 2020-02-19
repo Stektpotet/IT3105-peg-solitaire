@@ -21,7 +21,7 @@ agent:
             elig_decay_rate: 0.99
             curiosity: 0.49
             curiosity_decay: 0.99975
-        critic_type: ann
+        critic_type: tabl
         critic:
             dimensions:
                 - 16
