@@ -217,27 +217,22 @@ class ANNCritic(ANNModel, Critic):
         #print(f"trainable_variables {self.model.trainable_variables}")
 
         # For all the gradient layers' matrices:
-        for i, g in enumerate(gradients):
-            #print(f" elg_trace: {self.eligibility_traces[i]}")
-            #print(f" discount: {self.discount}")
-            #print(f" elg_decay: {self.eligibility_decay_rate}")
-            # print(f"g is : {g}")
-            self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
-            self.eligibility_traces[i] += g
-            # The learning rate is presumably applied by the optimizer upon 'apply_gradients'
-            gradients[i] += self.eligibility_traces[i] * error  # * self.learning_rate
-
-        #print(self.model.trainable_variables)
-
         # each element g is here -2δ(∂V(s)/∂w)
         for i, g in enumerate(gradients):
+            # print(f" elg_trace: {self.eligibility_traces[i]}")
+            # print(f" discount: {self.discount}")
+            # print(f" elg_decay: {self.eligibility_decay_rate}")
+            # print(f"g is : {g}")
+
             # decay self
-            self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
-            # add gradient
-            self.eligibility_traces[i] += g
+            self.eligibility_traces[i] *= self.discount * self.eligibility_decay_rate
+            # add gradient - read eq. 16 & 21 (SDG  elig update L3-Slide8)
+            self.eligibility_traces[i] += g / (-2 * error)
             # update gradient - it's later used in the weight update performed by the optimizer
             # w_ = w + α δ e (w_ = w + learning rate * error * eligibility)
+            # modify gradient (∂L/∂w) to δ*elig (read eq. 16 & 21)
             gradients[i] = self.eligibility_traces[i] * error
+
         self.model.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
 

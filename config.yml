@@ -23,10 +23,9 @@ agent:
         critic_type: ann
         critic:
             dimensions:
-                - 24
-                - 48
-                - 1
-            learning_rate: 0.05
+                - 15
+                - 5
+            learning_rate: 0.0005
             discount: 0.99
             elig_decay_rate: 0.99
             # TODO: Remove

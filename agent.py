@@ -57,7 +57,6 @@ class Agent(ABC):
             # Step 4 through 6 can be moved into one call on critic :tinking:
             # 4. CRITIC: δ ← r +γV(s')−V(s)
             error = self.critic.error(state, state_prime, reward)
-            print(error)
 
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
             #TODO: make this nicer: i.e. make an abstract function of it
@@ -86,9 +85,9 @@ class Agent(ABC):
             if self._episode_rollout(env, i) == 1:
                 wins += 1
             env.plot(i)
-            # print(self.actor.curiosity)
 
         print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
+        print("Curiosity at end: ", self.actor.curiosity)
 
         # TODO: Implement the agent actions
         # https://github.com/karl-hajjar/RL-solitaire/blob/8386fe857f902c83c21a9addc5d6e6336fc9c66a/agent.py#L113
