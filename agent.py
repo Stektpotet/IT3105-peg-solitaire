@@ -3,6 +3,7 @@ import random
 import numpy as np
 from tensorflow import keras
 import tensorflow as tf
+from tqdm import tqdm
 from abc import ABC, abstractmethod
 
 from actorcritic import Actor, Critic, TableCritic
@@ -77,7 +78,7 @@ class Agent(ABC):
         self.critic.initialize(env.state_key)
         self.actor.initialize(env.state_key, env.actions())
 
-        for i in range(n_episodes):
+        for i in tqdm(range(n_episodes)):
             if self._episode_rollout(env, i) == 1:
                 wins += 1
             env.plot(i)
@@ -118,5 +119,4 @@ class RandomAgent(Agent):
 
     def __init__(self, actor: Actor, critic: Critic):
         Agent.__init__(self, actor, critic)
-
         pass

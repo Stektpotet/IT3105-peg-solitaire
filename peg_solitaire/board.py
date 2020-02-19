@@ -25,6 +25,10 @@ class Board(ABC):
     @abstractmethod
     def to_bytes(self) -> bytes: pass
 
+    @property
+    @abstractmethod
+    def center(self) -> (int, int): pass
+
     @abstractmethod
     def rotate_state_action(self, x, y, move) -> List:
         """
@@ -127,6 +131,7 @@ class Board(ABC):
         self.pegs[peg_skip_pos] = False
         self.pegs[peg_jumper] = False
 
+
 class TriangleBoard(Board):
 
     def to_bytes(self) -> bytes:
@@ -151,6 +156,10 @@ class TriangleBoard(Board):
     def _count_holes(self) -> int:
         return len(self.flat_indices)
 
+    @property
+    def center(self) -> (int, int):
+        return int(self.shape[0] / 2), int(self.shape[1] / 2) - int(self.shape[1] / 4)
+
     def __init__(self, size: int):
         self._unmasked_pegs = np.tri(size, dtype=np.uint8)
         self.pegs = ma.masked_array(self._unmasked_pegs, mask=np.tri(size, dtype=np.uint8, k=-1).T, hard_mask=True)
@@ -160,7 +169,7 @@ class TriangleBoard(Board):
         self.flat_indices = [self.index_flat(i) for i in self.indices]
         print(len(self.flat_indices))
 
-        self.pegs[int(self.shape[0] / 2), int(self.shape[1] / 2) - int(self.shape[1] / 4)] = 0
+        self.pegs[self.center] = 0
         Board.__init__(self, size)
 
     def __repr__(self):
@@ -184,9 +193,13 @@ class DiamondBoard(Board):
         """
         return self.shape[0] * self.shape[1]
 
+    @property
+    def center(self) -> (int, int):
+        return int(self.shape[1] / 2), int(self.shape[0] / 2)
+
     def __init__(self, size: int):
         self.pegs = np.ones((size, size), dtype=np.uint8)
-        self.pegs[int(self.shape[1] / 2), int(self.shape[0] / 2)] = 0
+        self.pegs[self.center] = 0
         Board.__init__(self, size)
 
     # NOTE: The following may be generalizable enough to put it into the superclass

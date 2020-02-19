@@ -219,15 +219,15 @@ class ANNCritic(ANNModel, Critic):
             gradients = tape.gradient(loss, self.model.trainable_variables) # ∂V(s) / ∂w_i
             #print(f"trainable_variables {self.model.trainable_variables}")
 
-            for i, g in enumerate(gradients):
-                #print(f" elg_trace: {self.eligibility_traces[i]}")
-                #print(f" discount: {self.discount}")
-                #print(f" elg_decay: {self.eligibility_decay_rate}")
-                #print(f"g is : {g}")
-                self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
-                self.eligibility_traces[i] += g
-                gradients[i] += self.eligibility_traces[i] * error
-                #print(gradients[i])
+        for i, g in enumerate(gradients):
+            #print(f" elg_trace: {self.eligibility_traces[i]}")
+            #print(f" discount: {self.discount}")
+            #print(f" elg_decay: {self.eligibility_decay_rate}")
+            #print(f"g is : {g}")
+            self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
+            self.eligibility_traces[i] += g
+            gradients[i] += self.eligibility_traces[i] * error
+            #print(gradients[i])
 
         #print(self.model.trainable_variables)
 

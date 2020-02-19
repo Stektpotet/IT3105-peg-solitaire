@@ -32,10 +32,12 @@ class BoardDrawer:
         self._image[rr, cc] = fill
         self._draw_circle(x, y)
 
-    def _draw_circle(self, x: int, y: int):
+    def _draw_circle(self, x: int, y: int, color=None):
+        if not color:
+            color = self.color
         # circle outline
         rr, cc = circle_perimeter(x, y, self.peg_scale, shape=self._image.shape)
-        self._image[rr, cc, :] = self.color
+        self._image[rr, cc, :] = color
 
     def _draw_line(self, p_x: int, p_y: int, q_x: int, q_y: int):
         """
@@ -81,39 +83,28 @@ class BoardDrawer:
             print("Unknown board type!")
             return mat
 
-    def _draw_lines(self, board: Board, view, transform):
-        pass
+    def clear(self):
+        self._image = np.zeros_like(self._image, dtype=np.ubyte)
 
-    def _draw_pegs(self, board: Board, view, transform):
-        pass
-
-    def index_from_screen_space(self, board, x: int, y: int):
-        # TODO: implement properly
+    def draw_selection(self, board: Board, selected_peg: (int, int)):
         transform = self.board_type_transform(np.identity(3), board)
-
-        # Apply the appropriate transformation for the board
-        # transform = self.board_type_transform(board, transform)
-
-        view_transform = scale(np.identity(3),
-                               self.size / (board.size + 1),
-                               self.size / (board.size + 1))
-
-        o = np.array([x, y, 1], dtype=int)  # We need a 2D homogeneous vector (i.e. x,y,z) for matrix ops
-        p = o.dot(np.linalg.inv(view_transform.dot(transform)))
-        return p
-
-    def draw(self, board: Board):
-        # Center the board around the origin (0, 0)
-        transform = self.board_type_transform(np.identity(3), board)
-
-        # Apply the appropriate transformation for the board
-        # transform = self.board_type_transform(board, transform)
 
         view_transform = scale(np.identity(3),
                                self.size/(board.size+1),
                                self.size/(board.size+1))
 
+        o = np.array([*selected_peg, 1], dtype=int)  # We need a 2D homogeneous vector (i.e. x,y,z) for matrix ops
+        p = o.dot(transform.dot(view_transform))  # Transform point to screen space
+        p_x = int(p[0])
+        p_y = int(p[1])
+        self._draw_circle(p_x, p_y, color=self.color[::-1])
+        return self._view
 
+    def draw(self, board: Board):
+        transform = self.board_type_transform(np.identity(3), board)
+        view_transform = scale(np.identity(3),
+                               self.size/(board.size+1),
+                               self.size/(board.size+1))
 
         for y in range(board.shape[0]):
             for x in range(board.shape[1]):
@@ -130,14 +121,12 @@ class BoardDrawer:
                     [min(x + 1, board.size-1), y, 1]
                     ])  # down to the left
 
-
                 p_x = int(p[0])
                 p_y = int(p[1])
 
                 for i in range(len(n)):
                     q_x, q_y, *_ = n[i].dot(transform.dot(view_transform))
                     self._draw_line(p_x, p_y, int(q_x), int(q_y))
-
 
         for y in range(board.shape[0]):
             for x in range(board.shape[1]):

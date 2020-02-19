@@ -103,26 +103,51 @@ class PegSolitaireEnvironment(Environment):
         # reward = 1-(x-1)/(n-1)  # LINEAR REWARD [0, 1]
 
         # p and curiosity are strongly linked
-        # p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
-        # reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
+        #p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
+        #reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
+
         reward = (2 * (1 - x) / (n - 2)) + 1  # LINEAR REWARD [-1, 1]
         return reward
 
+    def _render_selection(self, selection: (int, int)):
+        plt.clf()
+
+        self.board_drawer.draw(self.board)
+        plt.imshow(self.board_drawer.draw_selection(self.board, selection))
+        plt.pause(0.01)
+
+
+
     def user_modify(self):
-        self.render()
         wait_for_enter_key = True
 
-        def on_click(event):
-            print(self.board_drawer.index_from_screen_space(self.board, event.x, event.y))
-            print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-                  ('double' if event.dblclick else 'single', event.button,
-                   event.x, event.y, event.xdata, event.ydata))
+        key_mapping = {
+            '7': (-1, -1),
+            '4': (0, -1),
+            '1': (1, 0),
+            '9': (-1, 0),
+            '6': (0, 1),
+            '3': (1, 1),
+        }
 
-        cid_mousepress = self.fig.canvas.mpl_connect('button_press_event', on_click)
+        selection_peg = self.board.center
+        self._render_selection(selection_peg)
 
         def on_key_press(event: KeyEvent):
             nonlocal wait_for_enter_key
+            nonlocal selection_peg
+            nonlocal key_mapping
             print(f'Key pressed: {event.key}')
+            if event.key in key_mapping:
+                m = key_mapping[event.key]
+                p = selection_peg[0]+m[0], selection_peg[1]+m[1]
+                if 0 <= p[0] < self.board.size and 0 <= p[1] < self.board.size \
+                        and not ma.is_masked(self.board.pegs[p]):
+                    selection_peg = p
+                    self._render_selection(selection_peg)
+            if event.key == "5":
+                self.board.pegs[selection_peg] = not self.board.pegs[selection_peg]
+                self._render_selection(selection_peg)
             if event.key == "r":
                 np.random.shuffle(self.board._unmasked_pegs)
                 print(self.board)
@@ -134,7 +159,6 @@ class PegSolitaireEnvironment(Environment):
         while wait_for_enter_key:
             plt.waitforbuttonpress(timeout=100)
 
-        self.fig.canvas.mpl_disconnect(cid_mousepress)
         self.fig.canvas.mpl_disconnect(cid_keypress)
 
         self._initial_board = deepcopy(self.board)  # Store aside the board in its starting config
@@ -157,12 +181,12 @@ class PegSolitaireEnvironment(Environment):
     def generate_state_action_pairs(self):  # Oops is this full on dynamic programming bootstrapping...?
         state_action_pairs = {}
         state_values = {}
-        # TODO: we should identify rotated states
         # Note: we can extract states for the critic
+        # we can identify rotated states
 
         def step(board):
             state_values[bytes(board.pegs)] = self._score_state(board)
-            for p in zip(*np.where(board.pegs == 0)):  # For each open position - TODO: verify that masked values are not used
+            for p in zip(*np.where(board.pegs == 0)):  # For each open position
 
                 for move in (board.valid_moves(p)):
                     if board.valid_action(p, move):
