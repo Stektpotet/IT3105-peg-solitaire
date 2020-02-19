@@ -100,7 +100,7 @@ class PegSolitaireEnvironment(Environment):
         x = board.pegs_remaining
         n = board.hole_count
         # reward = ((x-(n-1)) ** 4) / ((n-2) ** 4)  # QUAD-SCALE REWARD [0, 1]
-        # reward = 1-(x-1)/(n-1)  # LINEAR REWARD [0, 1]
+        # reward = 1-(x-1)/(n-2)  # LINEAR REWARD [0, 1]
 
         # p and curiosity are strongly linked
         #p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions

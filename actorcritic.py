@@ -1,4 +1,5 @@
-
+import time
+from timeit import Timer
 from typing import Dict
 
 import numpy as np
@@ -192,9 +193,9 @@ class ANNCritic(ANNModel, Critic):
         self.eligibility_traces = np.zeros_like(self.model.trainable_variables)
 
     def error(self, state, state_prime, reward):
-        s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
-        s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
-        return reward + self.discount * self.model.predict(s_)[0, 0] - self.model.predict(s)[0, 0]
+        s_ = tf.convert_to_tensor(np.expand_dims(np.frombuffer(state_prime, dtype=np.uint8), axis=0), dtype=uint8)
+        s = tf.convert_to_tensor(np.expand_dims(np.frombuffer(state, dtype=np.uint8), axis=0), dtype=uint8)
+        return (reward + self.discount * self.model(s_)[0, 0] - self.model(s)[0, 0]).numpy()
 
     def update_all(self, error, *args):
         """
@@ -203,37 +204,41 @@ class ANNCritic(ANNModel, Critic):
         :param error:
         :return:
         """
-
-        state, state_prime, reward = args
+        state, next_state, reward = args
 
         with tf.GradientTape() as tape:
-            s_ = tf.convert_to_tensor([[i for i in state_prime]], dtype=uint8)
-            s = tf.convert_to_tensor([[i for i in state]], dtype=uint8)
-
+            s_ = tf.convert_to_tensor(np.expand_dims(np.frombuffer(next_state, dtype=np.uint8), axis=0), dtype=uint8)
+            s = tf.convert_to_tensor(np.expand_dims(np.frombuffer(state, dtype=np.uint8), axis=0), dtype=uint8)
             target = reward + self.discount * self.model(s_)
+
             prediction = self.model(s)
-            #print(f" predict: {prediction}")
-            #print(f"target: {target}")
             loss = self.model.loss(target, prediction)
+        gradients = tape.gradient(loss, self.model.trainable_variables)
+        #print(f"trainable_variables {self.model.trainable_variables}")
 
-            gradients = tape.gradient(loss, self.model.trainable_variables) # ∂V(s) / ∂w_i
-            #print(f"trainable_variables {self.model.trainable_variables}")
-
+        # For all the gradient layers' matrices:
         for i, g in enumerate(gradients):
             #print(f" elg_trace: {self.eligibility_traces[i]}")
             #print(f" discount: {self.discount}")
             #print(f" elg_decay: {self.eligibility_decay_rate}")
-            #print(f"g is : {g}")
+            # print(f"g is : {g}")
             self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
             self.eligibility_traces[i] += g
-            gradients[i] += self.eligibility_traces[i] * error
-            #print(gradients[i])
+            # The learning rate is presumably applied by the optimizer upon 'apply_gradients'
+            gradients[i] += self.eligibility_traces[i] * error  # * self.learning_rate
 
         #print(self.model.trainable_variables)
 
+        # each element g is here -2δ(∂V(s)/∂w)
         for i, g in enumerate(gradients):
+            # decay self
             self.eligibility_traces[i] *= self.eligibility_traces[i] * self.discount * self.eligibility_decay_rate
+            # add gradient
             self.eligibility_traces[i] += g
-            gradients[i] += self.eligibility_traces[i] * error
+            # update gradient - it's later used in the weight update performed by the optimizer
+            # w_ = w + α δ e (w_ = w + learning rate * error * eligibility)
+            gradients[i] = self.eligibility_traces[i] * error
         self.model.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+
+
         #print(self.model.optimizer.get_gradients(loss, self.model.trainable_variables))

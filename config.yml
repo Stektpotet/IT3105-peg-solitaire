@@ -6,7 +6,7 @@ env:
 
 agent:
     action_axes: 2
-    episodes: 1500
+    episodes: 500
     tests: 50
 
     acm:
@@ -20,13 +20,13 @@ agent:
             elig_decay_rate: 0.99
             curiosity: 0.69
             curiosity_decay: 0.99985
-        critic_type: table
+        critic_type: ann
         critic:
             dimensions:
                 - 24
                 - 48
                 - 1
-            learning_rate: 0.002
+            learning_rate: 0.05
             discount: 0.99
             elig_decay_rate: 0.99
             # TODO: Remove

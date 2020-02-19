@@ -1,4 +1,5 @@
 import random
+import time
 
 import numpy as np
 from tensorflow import keras
@@ -28,6 +29,7 @@ class Agent(ABC):
         pass
 
     def _episode_rollout(self, env: Environment, episode: int):
+
         env.reset()
         self.actor.reset_eligibility_traces()
         self.critic.reset_eligibility_traces()
@@ -55,9 +57,10 @@ class Agent(ABC):
             # Step 4 through 6 can be moved into one call on critic :tinking:
             # 4. CRITIC: δ ← r +γV(s')−V(s)
             error = self.critic.error(state, state_prime, reward)
+            print(error)
 
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
-            #TODO: make this nicer:
+            #TODO: make this nicer: i.e. make an abstract function of it
             if issubclass(type(self.critic), TableCritic):
                 self.critic.eligibility_traces[state] = 1  # NOTE: THIS DIFFERS FOR TABLE AND ANN
 
@@ -68,6 +71,7 @@ class Agent(ABC):
             # 7
             state = state_prime
             action = action_prime
+
 
     def learn(self, env: Environment, n_episodes: int):
 
@@ -82,8 +86,7 @@ class Agent(ABC):
             if self._episode_rollout(env, i) == 1:
                 wins += 1
             env.plot(i)
-            print(self.actor.curiosity)
-            # print(self.critic)
+            # print(self.actor.curiosity)
 
         print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
 
