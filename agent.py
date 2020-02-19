@@ -93,11 +93,22 @@ class Agent(ABC):
         # https://github.com/karl-hajjar/RL-solitaire/blob/8386fe857f902c83c21a9addc5d6e6336fc9c66a/agent.py#L113
         # for inspiration
 
+    def _test_episode_rollout(self, env: Environment, episode: int):
+        env.reset()
+        self.actor.reset_eligibility_traces()
+        self.critic.reset_eligibility_traces()
+        reward = 0
+
+        done = False
+        while not done:
+            reward, done = env.step(self.select_actions(env))
+        return reward
+
     def test(self, env: Environment, n_games):
         wins = 0
         self.actor.curiosity = 0
-        for i in range(n_games):
-            if self._episode_rollout(env, i) == 1:
+        for i in tqdm(range(n_games)):
+            if self._test_episode_rollout(env, i) == 1:
                 wins += 1
         env.render()
         print(f"Testing stopped... \n\twins: {100*wins/n_games}% success when greedy")
