@@ -19,6 +19,12 @@ class Agent(ABC):
         self.critic = critic
         pass
 
+    @abstractmethod
+    def track_progression(self, env: Environment, episode: int): pass
+
+    @abstractmethod
+    def plot(self): pass
+
     def select_actions(self, env: Environment):
         """
         Select an action based on the actors policy
@@ -29,7 +35,6 @@ class Agent(ABC):
         pass
 
     def _episode_rollout(self, env: Environment, episode: int):
-
         env.reset()
         self.actor.reset_eligibility_traces()
         self.critic.reset_eligibility_traces()
@@ -45,7 +50,7 @@ class Agent(ABC):
                 # if reward == 1:
                     # env.render()
                 # TODO: check victory
-                return reward
+                return env.has_won()
 
             # 2. ACTOR: a’ ← Π(s’) THE ACTION DICTATED BY THE CURRENT POLICY FOR STATE s’.
             state_prime = env.state_key
@@ -82,10 +87,11 @@ class Agent(ABC):
         self.actor.initialize(env.state_key, env.actions())
 
         for i in tqdm(range(n_episodes)):
-            if self._episode_rollout(env, i) == 1:
+            if self._episode_rollout(env, i):
                 wins += 1
-            env.plot(i)
+            self.track_progression(env, i)
 
+        self.plot()
         print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
         print("Curiosity at end: ", self.actor.curiosity)
 
@@ -102,13 +108,13 @@ class Agent(ABC):
         done = False
         while not done:
             reward, done = env.step(self.select_actions(env))
-        return reward
+        return env.has_won()
 
     def test(self, env: Environment, n_games):
         wins = 0
         self.actor.curiosity = 0
         for i in tqdm(range(n_games)):
-            if self._test_episode_rollout(env, i) == 1:
+            if self._test_episode_rollout(env, i):
                 wins += 1
         env.render()
         print(f"Testing stopped... \n\twins: {100*wins/n_games}% success when greedy")

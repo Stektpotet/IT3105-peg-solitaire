@@ -227,7 +227,7 @@ class ANNCritic(ANNModel, Critic):
             # decay self
             self.eligibility_traces[i] *= self.discount * self.eligibility_decay_rate
             # add gradient - read eq. 16 & 21 (SDG  elig update L3-Slide8)
-            self.eligibility_traces[i] += g / (-2 * error)
+            self.eligibility_traces[i] += g / (2 * error)
             # update gradient - it's later used in the weight update performed by the optimizer
             # w_ = w + α δ e (w_ = w + learning rate * error * eligibility)
             # modify gradient (∂L/∂w) to δ*elig (read eq. 16 & 21)

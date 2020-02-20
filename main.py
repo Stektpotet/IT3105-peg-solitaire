@@ -1,6 +1,8 @@
 import os
 from typing import Dict
 import argparse
+
+import matplotlib
 import yaml
 
 from actorcritic import TableCritic, ANNCritic, Actor, Critic, TableActor
@@ -37,6 +39,9 @@ if __name__ == '__main__':
         print("using config file: ", args.config[0])
         config = yaml.load(cfg_file, Loader=yaml.FullLoader)
 
+    matplotlib.use(backend="TkAgg")
+    fig, ax = plt.subplots(1, 2)
+
     env = PegSolitaireEnvironment()
     env.setup(config)
 
@@ -49,6 +54,7 @@ if __name__ == '__main__':
     env.should_render = args.graphics
     agent.learn(env, cfg_agent['episodes'])
 
+    env.should_render = True
     agent.test(env, cfg_agent['tests'])
 
     # saps = env.generate_state_action_pairs()

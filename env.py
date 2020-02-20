@@ -20,9 +20,6 @@ class Environment(ABC):
     def render(self): pass
 
     @abstractmethod
-    def plot(self, episode): pass
-
-    @abstractmethod
     def set_state(self, state): pass
 
     @abstractmethod
@@ -31,6 +28,9 @@ class Environment(ABC):
     @property
     @abstractmethod
     def state_key(self): pass
+
+    @abstractmethod
+    def has_won(self): pass
 
     @abstractmethod
     def actions(self) -> List:
