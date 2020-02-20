@@ -53,7 +53,7 @@ class ANNModel(ActorCriticBase, ABC):
 
 class Actor(ActorCriticBase):
 
-    def __init__(self, state_shape, action_shape, dimensions,
+    def __init__(self, action_shape,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
         self.eligibility_traces = {}
@@ -93,9 +93,9 @@ class TableActor(Actor):
 
     policy: Dict
 
-    def __init__(self, state_shape, action_shape, dimensions,
+    def __init__(self, action_shape,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
-        Actor.__init__(self, state_shape, action_shape, dimensions,
+        Actor.__init__(self, action_shape,
                        learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
         self.policy = {}
@@ -141,6 +141,7 @@ class TableActor(Actor):
         else:
             selected_action = random.choice(actions)
         self.curiosity *= self.curiosity_decay
+
         return selected_action
 
     def reset_eligibility_traces(self):
@@ -235,7 +236,7 @@ class ANNCritic(ANNModel, Critic):
             # print(f"g is : {g}")
 
             # decay self
-            self.eligibility_traces[i] *= self.discount * self.eligibility_decay_rate
+            # self.eligibility_traces[i] *= self.discount * self.eligibility_decay_rate
             # add gradient - read eq. 16 & 21 (SDG  elig update L3-Slide8)
             self.eligibility_traces[i] += g / (2 * error)
             # update gradient - it's later used in the weight update performed by the optimizer

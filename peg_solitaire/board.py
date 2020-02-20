@@ -163,11 +163,9 @@ class TriangleBoard(Board):
     def __init__(self, size: int):
         self._unmasked_pegs = np.tri(size, dtype=np.uint8)
         self.pegs = ma.masked_array(self._unmasked_pegs, mask=np.tri(size, dtype=np.uint8, k=-1).T, hard_mask=True)
-        print(bytes(self.pegs))
         self.indices = list(zip(*np.tril_indices_from(self.pegs)))
 
         self.flat_indices = [self.index_flat(i) for i in self.indices]
-        print(len(self.flat_indices))
 
         self.pegs[self.center] = 0
         Board.__init__(self, size)

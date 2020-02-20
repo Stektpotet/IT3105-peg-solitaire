@@ -129,77 +129,44 @@ class PegSolitaireEnvironment(Environment):
         #p = 4  # NOTE: THIS MUST RESULT IN A VALID FUNCTION - not all p-s give working functions
         #reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
 
-        lin_reward = (2 * (1 - x0) / (n - 2)) + 1  # LINEAR REWARD [-1, 1]
         # reward = lin_reward + PegSolitaireEnvironment._countDistinctIslands(board) / n #
-        # if x1 == 0:
-        #     print("x1")
-        # if x0 == 0:
-        #     print("x0")
 
-        V2 = lin_reward + x0 / (total_dist + 0.1)
-        V3 = (x1 + 1) * x0 / (total_dist + 0.1)
-        V4 = lin_reward + (x1 + 1) * x0 / (total_dist + 0.1)
+        # corner_punishment = -(board.pegs[0, 0] + board.pegs[-1, 0] + board.pegs[-1, -1])
+        # if not ma.is_masked(board.pegs[0, -1]):
+        #     corner_punishment -= board.pegs[0, -1]
+
+
+        V1 = lin_reward = (2 * (1 - x0) / (n - 2)) + 1  # LINEAR REWARD [-1, 1] # Works well with table
+        V2 = lin_reward + x0 / (total_dist + 0.1)  # lin + number of pegs / distance between pegs # Works well with table
+        V3 = (x1 + 1) * x0 / (total_dist + 0.1)  # number of actions possible / (number of pegs / total distance)
+        V3b = (x1 + 1) / (x0 / (total_dist + 0.1))  # number of actions possible / (number of pegs / total distance)
+        V4 = lin_reward + (x1 + 1) * x0 / (total_dist + 0.1)  # Works well with table
         V5 = (x1 + lin_reward*2) * x0 / (total_dist + 0.1)
 
-        return V2  # (x1 + lin_reward*2) * x0 / (total_dist + 0.1)
+        #When there are no actions left
 
-
-
-    # Function to perform dfs of the input grid
-    @staticmethod
-    def _dfs(moves, pegs, x0, y0, i, j, v):
-        rows = len(pegs)
-        cols = len(pegs[0])
-        if i < 0 or i >= rows or i < 0 or j >= cols or pegs[i][j] <= 0:
-            return
-        # marking the visited element as -1
-        pegs[i][j] *= -1
-
-        # computing coordinates with x0, y0 as base
-        v.append([i - x0, j - y0])
-
-        # repeat dfs for neighbors
-        for dir in moves:
-            PegSolitaireEnvironment._dfs(moves, pegs, x0, y0, i + dir[0], j + dir[1], v)
-
-
-            # Main function that returns distinct count of islands in
-
-
-    @staticmethod
-    def _countDistinctIslands(board):
-        grid = np.copy(board.pegs).astype('float32')
-        coordinates = []
-
-        for i in range(len(grid)):
-            for j in range(len(grid[0])):
-
-                # If a cell is not 1
-                # no need to dfs
-                if not grid[i][j]:
-                    continue
-
-                # to hold coordinates
-                # of this island
-                v = []
-                PegSolitaireEnvironment._dfs(board.moves, grid, i, j, i, j, v)
-
-                # insert the coordinates for
-                # this island to set
-                if len(v):
-                    coordinates.append(v)
-
-        return len(coordinates)
-
-        # Driver code
+        return V1
 
     def _render_selection(self, selection: (int, int)):
-
         self.board_drawer.draw(self.board)
         self.axis.imshow(self.board_drawer.draw_selection(self.board, selection))
         plt.pause(self._frame_delay)
 
     def user_modify(self):
+        """
+        Let the user interact with the peg board by numpad (while NOT in num-lock mode)
+
+        Selection controls:
+
+        |  7 - up left   |                |  9 - up right   |
+        |  4 - left      | 5 - toggle peg |  6 - right      |
+        |  1 - down left |                |  3 - down right |
+
+        "p":     print current board possible number of actions and score
+        "enter": start training
+
+        :return:
+        """
         wait_for_enter_key = True
 
         if issubclass(type(self.board), TriangleBoard):
@@ -240,7 +207,7 @@ class PegSolitaireEnvironment(Environment):
                 self.board.pegs[selection_peg] = not self.board.pegs[selection_peg]
                 self._render_selection(selection_peg)
             if event.key == "p":
-                print(self._countDistinctIslands(self.board))
+                print(len(self.actions()))
                 print(self._score_state(self.board))
             if event.key == "enter":
                 wait_for_enter_key = False
@@ -269,33 +236,3 @@ class PegSolitaireEnvironment(Environment):
                     p_flat = board.index_flat(p)
                     valid_actions.append((p_flat, move))
         return valid_actions
-
-    def generate_state_action_pairs(self):  # Oops is this full on dynamic programming bootstrapping...?
-        state_action_pairs = {}
-        state_values = {}
-        # Note: we can extract states for the critic
-        # we can identify rotated states
-
-        def step(board):
-            state_values[bytes(board.pegs)] = self._score_state(board)
-            for p in zip(*np.where(board.pegs == 0)):  # For each open position
-
-                for move in (board.valid_moves(p)):
-                    if board.valid_action(p, move):
-                        b = deepcopy(board)     # Split computation
-                        b.apply_action(p, move)
-
-                        p_flat = board.index_flat(p)
-
-                        # No need to generate this again!
-                        if (bytes(board.pegs), (p_flat, move)) not in state_action_pairs:
-                            state_action_pairs[(bytes(board.pegs), (p_flat, move))] = self._score_state(b)
-
-                            # for equiv in board.rotate_state_action(*p, move):
-                            #     state_action_pairs[(bytes(equiv[0]), (equiv[1], equiv[2]))] = self._score_state(b)
-
-                            self._render(b)
-                            step(b)
-
-        step(deepcopy(self._initial_board))
-        return state_action_pairs, state_values

@@ -6,25 +6,23 @@ env:
 
 agent:
     action_axes: 2
-    episodes: 1000
-    greedy: False
-    tests: 50
+    episodes: 800
+    tests: 4
 
     acm:
         actor:
-            dimensions: None
-            learning_rate: 0.002
-            discount: 0.99
+            learning_rate: 0.99
+            discount: 0.96
             elig_decay_rate: 0.99
-            curiosity: 0.69
-            curiosity_decay: 0.999975
-        critic_type: table
+            curiosity: 0.8
+            curiosity_decay: 0.9993
+        critic_type: ann
         critic:
             dimensions:
-                - 24
-                - 48
-                - 1
-            learning_rate: 0.002
+                - 25
+                - 15
+                - 5
+            learning_rate: 0.00002
             discount: 0.99
             elig_decay_rate: 0.99
             # TODO: Remove
@@ -37,7 +35,7 @@ visual:
     peg_scale: 0.5
     board_scale: 1
     outline_color:
-        - 255
+        - 0
         - 255
         - 255
     fill_color:
