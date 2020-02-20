@@ -61,8 +61,6 @@ class Agent(ABC):
             # 4. CRITIC: δ ← r +γV(s')−V(s)
             error = self.critic.error(state, state_prime, reward)
 
-
-
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
             self.critic.set_eligibility_of_state(state)
 
@@ -73,7 +71,6 @@ class Agent(ABC):
             # 7
             state = state_prime
             action = action_prime
-
 
     def learn(self, env: Environment, n_episodes: int):
         wins = 0
@@ -91,10 +88,6 @@ class Agent(ABC):
         self.plot()
         print(f"Learning stopped! {n_episodes} episodes completed\n\twins: {wins}")
         print("Curiosity at end: ", self.actor.curiosity)
-
-        # TODO: Implement the agent actions
-        # https://github.com/karl-hajjar/RL-solitaire/blob/8386fe857f902c83c21a9addc5d6e6336fc9c66a/agent.py#L113
-        # for inspiration
 
     def _test_episode_rollout(self, env: Environment, episode: int):
         env.reset()
@@ -128,6 +121,12 @@ class RandomAgent(Agent):
     An agent only doing random actions,
     no policy behind them - might be useful for debugging
     """
+
+    def plot(self):
+        pass
+
+    def track_progression(self, env: Environment, episode: int):
+        pass
 
     def select_actions(self, env: Environment):
         possible_actions = env.actions()

@@ -169,11 +169,6 @@ class TableCritic(Critic):
         if state_prime not in self.state_values:
             self.state_values[state_prime] = random.uniform(0.49, 0.5)
 
-        if state not in self.eligibility_traces:  # NOTE: this can be set to 1 immediately according to the algorithm
-            self.eligibility_traces[state] = 0
-        if state_prime not in self.eligibility_traces:
-            self.eligibility_traces[state_prime] = 0
-
         return reward + self.discount * self.state_values[state_prime] - self.state_values[state]
 
     def reset_eligibility_traces(self):
@@ -184,7 +179,7 @@ class TableCritic(Critic):
 
     def update_all(self, error, *args):
         for s in self.eligibility_traces.keys():
-            self.state_values[s] += self.learning_rate * error * self.eligibility_decay_rate
+            self.state_values[s] += self.learning_rate * error * self.eligibility_traces[s]
             self.eligibility_traces[s] *= self.discount * self.eligibility_decay_rate
 
 

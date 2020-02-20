@@ -16,15 +16,15 @@ agent:
             learning_rate: 0.002
             discount: 0.99
             elig_decay_rate: 0.99
-            curiosity: 0.49
-            curiosity_decay: 0.99975
+            curiosity: 0.69
+            curiosity_decay: 0.999975
         critic_type: table
         critic:
             dimensions:
                 - 24
                 - 48
                 - 1
-            learning_rate: 0.005
+            learning_rate: 0.002
             discount: 0.99
             elig_decay_rate: 0.99
             # TODO: Remove
