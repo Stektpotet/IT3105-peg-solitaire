@@ -1,0 +1,40 @@
+env:
+    type: triangle
+    size: 5
+
+agent:
+    action_axes: 2
+    episodes: 5000
+    greedy: False
+    tests: 1
+
+    acm:
+        actor:
+            dimensions: None
+            learning_rate: 0.5
+            discount: 0.96
+            elig_decay_rate: 0.99
+            curiosity: 0.7
+            curiosity_decay: 0.9999
+        critic_type: table
+        critic:
+            dimensions: none
+            learning_rate: 0.005
+            discount: 0.99
+            elig_decay_rate: 0.99
+            curiosity: none
+            curiosity_decay: none
+
+visual:
+    frame_delay: 0.0001
+    resolution: 72
+    peg_scale: 0.5
+    board_scale: 1
+    outline_color:
+        - 255
+        - 255
+        - 255
+    fill_color:
+        - 127
+        - 0
+        - 0

@@ -194,7 +194,7 @@ class ANNCritic(ANNModel, Critic):
 
         self.model.compile(
             loss=tf.keras.losses.MeanSquaredError(),
-            optimizer=tf.keras.optimizers.Adam(learning_rate)
+            optimizer=tf.keras.optimizers.Adagrad(learning_rate)
         )
         self.eligibility_traces = np.zeros(len(self.model.trainable_variables))
 
