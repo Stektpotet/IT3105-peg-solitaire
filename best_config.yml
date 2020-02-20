@@ -35,6 +35,7 @@ agent:
             curiosity_decay: 0.9999
 
 visual:
+    frame_delay: 0.01
     resolution: 72
     peg_scale: 0.5
     board_scale: 1

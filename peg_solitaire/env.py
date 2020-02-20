@@ -33,7 +33,7 @@ class PegSolitaireEnvironment(Environment):
         #  plt pause or something?
         pass
 
-    def step(self, action: (int, int)) -> (int, bool):
+    def step(self, action: (int, int)) -> (float, bool):
         flat_index, move = action
         self.board.apply_action(self.board.index_2d(flat_index), move)
 
@@ -70,8 +70,6 @@ class PegSolitaireEnvironment(Environment):
         self._initial_board = deepcopy(self.board)  # Store away the original configuration of the board
 
         self.axis = plt.gcf().axes[0]
-
-
         pass
 
     def set_state(self, state: np.ndarray):
@@ -102,10 +100,6 @@ class PegSolitaireEnvironment(Environment):
         # IDEA: compute divergence from center of mass and use that as a factor of the reward,
         #       ideally helping the agent keeping pegs close together :thinking:
         #
-        def smoothstep(x, min, max):
-            if x < min: return min
-            elif x > max: return max
-            return (max-min) * x * x * x * (x * (x * 6 - 15) + 10)
 
         x0 = board.pegs_remaining
         x1 = len(PegSolitaireEnvironment._actions(board))
@@ -137,9 +131,17 @@ class PegSolitaireEnvironment(Environment):
 
         lin_reward = (2 * (1 - x0) / (n - 2)) + 1  # LINEAR REWARD [-1, 1]
         # reward = lin_reward + PegSolitaireEnvironment._countDistinctIslands(board) / n #
-        # g = smoothstep(x1*x1/n, 0, 1)
+        # if x1 == 0:
+        #     print("x1")
+        # if x0 == 0:
+        #     print("x0")
 
-        return lin_reward + x0 / (total_dist + 0.1)
+        V2 = lin_reward + x0 / (total_dist + 0.1)
+        V3 = (x1 + 1) * x0 / (total_dist + 0.1)
+        V4 = lin_reward + (x1 + 1) * x0 / (total_dist + 0.1)
+        V5 = (x1 + lin_reward*2) * x0 / (total_dist + 0.1)
+
+        return V2  # (x1 + lin_reward*2) * x0 / (total_dist + 0.1)
 
 
 
@@ -229,10 +231,7 @@ class PegSolitaireEnvironment(Environment):
             print(f'Key pressed: {event.key}')
             if event.key in key_mapping:
                 m = key_mapping[event.key]
-                print(selection_peg)
                 p = selection_peg[0]+m[0], selection_peg[1]+m[1]
-                print(m)
-                print(p)
                 if 0 <= p[0] < self.board.size and 0 <= p[1] < self.board.size \
                         and not ma.is_masked(self.board.pegs[p]):
                     selection_peg = p

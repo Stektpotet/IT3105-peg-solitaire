@@ -1,45 +1,46 @@
 env:
     type: triangle
-
     size: 5
     # #NOTE: it would be nice to control this through the config too, but likely it's not feasible
     # reward = abs(2*((x-(n-1)) ** p)) / ((n-2) ** p) - 1  # p-POWERED REWARD [-1, 1]
 
 agent:
     action_axes: 2
-    episodes: 800
+    episodes: 1000
+    greedy: False
     tests: 50
 
     acm:
         actor:
             dimensions: None
-            learning_rate: 0.005
+            learning_rate: 0.002
             discount: 0.99
             elig_decay_rate: 0.99
             curiosity: 0.49
-            curiosity_decay: 0.9995
-        critic_type: ann
+            curiosity_decay: 0.99975
+        critic_type: table
         critic:
             dimensions:
-                - 15
-                - 5
-            learning_rate: 0.00005
+                - 24
+                - 48
+                - 1
+            learning_rate: 0.005
             discount: 0.99
             elig_decay_rate: 0.99
             # TODO: Remove
             curiosity: None
-            curiosity_decay: None
+            curiosity_decay: 0.None
 
 visual:
     frame_delay: 0.01
-    resolution: 40
+    resolution: 72
     peg_scale: 0.5
     board_scale: 1
     outline_color:
         - 255
         - 255
-        - 0
+        - 255
     fill_color:
-        - 0
         - 127
+        - 0
         - 0

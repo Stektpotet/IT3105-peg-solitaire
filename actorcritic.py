@@ -37,15 +37,15 @@ class ANNModel(ActorCriticBase, ABC):
         inputs = tf.keras.Input(shape=in_shape)
         x = inputs
         for s in dimensions:
-            x = tf.keras.layers.Dense(s, activation="sigmoid")(x)
+            x = tf.keras.layers.Dense(s, activation=tf.nn.leaky_relu)(x)
         output = tf.keras.layers.Dense(out_shape, activation="linear")(x)
         return tf.keras.Model(inputs=inputs, outputs=output, name=cls.__name__)
 
-    def __init__(self, state_shape, action_shape, dimensions,
+    def __init__(self, state_shape, output_shape, dimensions,
                  learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
         ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
 
-        self.model = self._make_model(state_shape, dimensions, action_shape)
+        self.model = self._make_model(state_shape, dimensions, output_shape)
         self.model.summary()
         self.learning_rate = learning_rate
         self.discount_rate = discount
@@ -65,10 +65,32 @@ class Actor(ActorCriticBase):
         pass
 
     @abstractmethod
+    def set_eligibility_of_state_action_pair(self, state, action): pass
+
+    @abstractmethod
     def select_action(self, state, actions): pass
+
+class Critic(ActorCriticBase):
+
+    def __init__(self, state_shape, action_shape,
+                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
+        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
+        self.action_shape = action_shape
+        self.state_shape = state_shape
+
+    def initialize(self, state):
+        ActorCriticBase.reset_eligibility_traces(self)
+        pass
+
+    @abstractmethod
+    def set_eligibility_of_state(self, state): pass
+
+    @abstractmethod
+    def error(self, state, state_prime, reward): pass
 
 
 class TableActor(Actor):
+
     policy: Dict
 
     def __init__(self, state_shape, action_shape, dimensions,
@@ -81,13 +103,17 @@ class TableActor(Actor):
     def initialize(self, state, actions):
         Actor.initialize(self, state, actions)
         for action in actions:
-            self.policy[(state, action)] = 0  # TODO: initialize
+            self.policy[(state, action)] = 0
         pass
 
     def update_all(self, error, *args):
         for sap in self.eligibility_traces.keys():
             self.policy[sap] += self.learning_rate * error * self.eligibility_traces[sap]
             self.eligibility_traces[sap] *= self.discount * self.eligibility_decay_rate
+
+    def set_eligibility_of_state_action_pair(self, state, action):
+        self.eligibility_traces[(state, action)] = 1
+        pass
 
     def select_action(self, state, actions):
         local_policy_mapping = {}
@@ -122,22 +148,6 @@ class TableActor(Actor):
         pass
 
 
-class Critic(ActorCriticBase):
-
-    def __init__(self, state_shape, action_shape,
-                 learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay):
-        ActorCriticBase.__init__(self, learning_rate, discount, elig_decay_rate, curiosity, curiosity_decay)
-        self.action_shape = action_shape
-        self.state_shape = state_shape
-
-    def initialize(self, state):
-        ActorCriticBase.reset_eligibility_traces(self)
-        pass
-
-    @abstractmethod
-    def error(self, state, state_prime, reward): pass
-
-
 class TableCritic(Critic):
 
     state_values: Dict
@@ -157,7 +167,7 @@ class TableCritic(Critic):
         if state not in self.state_values:  # Note: initial values may play a big part :thinking:
             self.state_values[state] = random.uniform(0.49, 0.5)  # This random distribution seems to work well
         if state_prime not in self.state_values:
-            self.state_values[state_prime] = random.uniform(0.49, 0.)
+            self.state_values[state_prime] = random.uniform(0.49, 0.5)
 
         if state not in self.eligibility_traces:  # NOTE: this can be set to 1 immediately according to the algorithm
             self.eligibility_traces[state] = 0
@@ -168,6 +178,9 @@ class TableCritic(Critic):
 
     def reset_eligibility_traces(self):
         self.eligibility_traces.clear()
+
+    def set_eligibility_of_state(self, state):
+        self.eligibility_traces[state] = 1
 
     def update_all(self, error, *args):
         for s in self.eligibility_traces.keys():
@@ -185,7 +198,7 @@ class ANNCritic(ANNModel, Critic):
 
         self.model.compile(
             loss=tf.keras.losses.MeanSquaredError(),
-            optimizer=tf.keras.optimizers.Adagrad(learning_rate)
+            optimizer=tf.keras.optimizers.Adam(learning_rate)
         )
         self.eligibility_traces = np.zeros(len(self.model.trainable_variables))
 
@@ -196,6 +209,8 @@ class ANNCritic(ANNModel, Critic):
         s_ = tf.convert_to_tensor(np.expand_dims(np.frombuffer(state_prime, dtype=np.uint8), axis=0), dtype=uint8)
         s = tf.convert_to_tensor(np.expand_dims(np.frombuffer(state, dtype=np.uint8), axis=0), dtype=uint8)
         return (reward + self.discount * self.model(s_)[0, 0] - self.model(s)[0, 0]).numpy()
+
+    def set_eligibility_of_state(self, state): pass
 
     def update_all(self, error, *args):
         """

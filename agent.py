@@ -30,10 +30,11 @@ class Agent(ABC):
         Select an action based on the actors policy
         :return:
         """
-        # TODO: Restructure this
+        # TODO: Restructure this - combine actor and critic as class
         return self.actor.select_action(env.state_key, env.actions())
         pass
 
+    # NOTE: Large portions of this function could be simplified by combining actor and critic in one class
     def _episode_rollout(self, env: Environment, episode: int):
         env.reset()
         self.actor.reset_eligibility_traces()
@@ -47,9 +48,6 @@ class Agent(ABC):
 
             if done:
                 print(f"Reached end-state: {reward}")
-                # if reward == 1:
-                    # env.render()
-                # TODO: check victory
                 return env.has_won()
 
             # 2. ACTOR: a’ ← Π(s’) THE ACTION DICTATED BY THE CURRENT POLICY FOR STATE s’.
@@ -57,16 +55,16 @@ class Agent(ABC):
             action_prime = self.select_actions(env)
 
             # 3. ACTOR: e(s,a) ← 1 (the actor keeps SAP-based eligibilities)
-            self.actor.eligibility_traces[(state, action)] = 1
+            self.actor.set_eligibility_of_state_action_pair(state, action)
 
             # Step 4 through 6 can be moved into one call on critic :tinking:
             # 4. CRITIC: δ ← r +γV(s')−V(s)
             error = self.critic.error(state, state_prime, reward)
 
+
+
             # 5. CRITIC: e(s) ← 1 (the critic needs state-based eligibilities)
-            #TODO: make this nicer: i.e. make an abstract function of it
-            if issubclass(type(self.critic), TableCritic):
-                self.critic.eligibility_traces[state] = 1  # NOTE: THIS DIFFERS FOR TABLE AND ANN
+            self.critic.set_eligibility_of_state(state)
 
             # 6
             self.critic.update_all(error, state, state_prime, reward)
@@ -78,7 +76,6 @@ class Agent(ABC):
 
 
     def learn(self, env: Environment, n_episodes: int):
-
         wins = 0
 
         # START OF ACTOR-CRITIC ALGORITHM #
@@ -111,6 +108,7 @@ class Agent(ABC):
         return env.has_won()
 
     def test(self, env: Environment, n_games):
+        env.render()
         wins = 0
         self.actor.curiosity = 0
         for i in tqdm(range(n_games)):
